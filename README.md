@@ -47,10 +47,11 @@ bash start.sh
 | `50` | `20695223` |
 | `200` | `5586288` |
 |`2000`|`1338885`|
+
 测试用例`TestMatchmaking_TicketInput`位于service/cellmesh_im/svc/match/entities/matchmaking_test.go中
 
 ### 其他
-本服务为亚马逊匹配服务的自实行，变动如下
+本服务为亚马逊匹配服务的实现，变动如下
 1. 取消最小最大团队玩家人数规则、采用固定人数对局;
 
 产品特性可参考亚马逊[匹配文档](https://docs.aws.amazon.com/zh_cn/gamelift/latest/flexmatchguide/match-client.html#match-client-track)
