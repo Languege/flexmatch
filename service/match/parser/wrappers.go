@@ -9,7 +9,6 @@ import (
 	"log"
 	"github.com/Languege/flexmatch/service/match/proto/open"
 	"strconv"
-	"reflect"
 )
 
 func AvgHandlerWrapper(ctx context.Context, handler chain.UserHandler) {
@@ -183,28 +182,40 @@ func FilterPlayerAttribute(p *open.MatchPlayer, attrName string) float64 {
 
 //TeamConfValue 读取team配置值
 func TeamConfValue(team *open.MatchTeam, fieldName string) (ret float64) {
-	fv := reflect.ValueOf(team.Conf).Elem().FieldByName(fieldName)
-	switch fv.Kind() {
-	case reflect.Int32,reflect.Int64:
-		ret = float64(fv.Int())
-	case reflect.Float32,reflect.Float64:
-		ret = fv.Float()
+	switch fieldName {
+	case "PlayerNumber":
+		return float64(team.Conf.PlayerNumber)
 	default:
-		log.Panicf("Team.Conf.%s type %s not supported", fieldName, fv.Kind())
+		return 0
 	}
-	return
+	//fv := reflect.ValueOf(team.Conf).Elem().FieldByName(fieldName)
+	//switch fv.Kind() {
+	//case reflect.Int32,reflect.Int64:
+	//	ret = float64(fv.Int())
+	//case reflect.Float32,reflect.Float64:
+	//	ret = fv.Float()
+	//default:
+	//	log.Panicf("Team.Conf.%s type %s not supported", fieldName, fv.Kind())
+	//}
+	//return
 }
 
 //RuleConfValue 读取rule配置值
 func RuleConfValue(rule *open.MatchmakingRule, fieldName string) (ret float64) {
-	fv := reflect.ValueOf(rule).Elem().FieldByName(fieldName)
-	switch fv.Kind() {
-	case reflect.Int32,reflect.Int64:
-		ret = float64(fv.Int())
-	case reflect.Float32,reflect.Float64:
-		ret = fv.Float()
+	switch fieldName {
+	case "MaxDistance":
+		return rule.MaxDistance
 	default:
-		log.Panicf("Rule.%s type %s not supported", fieldName, fv.Kind())
+		return 0
 	}
-	return
+	//fv := reflect.ValueOf(rule).Elem().FieldByName(fieldName)
+	//switch fv.Kind() {
+	//case reflect.Int32,reflect.Int64:
+	//	ret = float64(fv.Int())
+	//case reflect.Float32,reflect.Float64:
+	//	ret = fv.Float()
+	//default:
+	//	log.Panicf("Rule.%s type %s not supported", fieldName, fv.Kind())
+	//}
+	//return
 }

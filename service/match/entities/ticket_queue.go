@@ -11,13 +11,13 @@ import (
 
 const (
 	//票据队列缓冲区
-	maxTicketQueueBufferSize = 1000
+	maxTicketQueueBufferSize = 2000
 
 	//票据默认超时时间
 	defaultTicketTimeoutSeconds = 30
 
 	//票据输入通道大小
-	inputTicketChanBufferSize = 1000
+	inputTicketChanBufferSize = 2000
 )
 
 var (

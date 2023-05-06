@@ -72,6 +72,7 @@ func newTicket() *open.MatchmakingTicket {
 
 func TestMatchmaking_TicketInput(t *testing.T) {
 	conf := defaultConf()
+	conf.AcceptanceRequired = false
 	matchmaking := NewMatchmaking(conf)
 
 	wg := &sync.WaitGroup{}

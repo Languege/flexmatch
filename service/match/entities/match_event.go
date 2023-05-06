@@ -40,12 +40,12 @@ func(m *matchEventSubscribeManager) Register(sb matchEventSubscriber) {
 }
 
 func(m *matchEventSubscribeManager) MatchEventInput(ev *open.MatchEvent) {
-	for _, subscriber := range _subscribers {
+	for _, subscriber := range m.subscribers {
 		subscriber(m.topic, ev)
 	}
 }
 
 func matchEventPrint(topic string, ev *open.MatchEvent) {
 	data, _ := json.Marshal(ev)
-	log.Printf("%s\n", string(data))
+	log.Printf("%s %s\n", ev.MatchEventType, string(data))
 }
