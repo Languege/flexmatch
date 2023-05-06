@@ -4,13 +4,21 @@
 package entities
 
 import (
-	"encoding/json"
 	"github.com/Languege/flexmatch/service/match/proto/open"
+	"encoding/json"
 	"log"
-	"github.com/Shopify/sarama"
-	"github.com/google/uuid"
-	kafka_wrapper "github.com/Languege/flexmatch/service/match/wrappers/kafka"
 )
+
+//初始订阅设置
+var _subscribers  = []matchEventSubscriber{}
+
+func init() {
+	RegisterSubscribe(matchEventPrint)
+}
+
+func RegisterSubscribe(sb matchEventSubscriber) {
+	_subscribers = append(_subscribers, sb)
+}
 
 type matchEventSubscriber func(topic string, ev *open.MatchEvent)
 
@@ -22,9 +30,7 @@ type matchEventSubscribeManager struct {
 func newMatchEventSubscribeManager(topic string) (m *matchEventSubscribeManager){
 	m = &matchEventSubscribeManager{topic:topic}
 
-	m.Register(matchEventPrint)
-	m.Register(matchEventPushKafka)
-
+	m.subscribers = append(m.subscribers, _subscribers...)
 
 	return m
 }
@@ -34,7 +40,7 @@ func(m *matchEventSubscribeManager) Register(sb matchEventSubscriber) {
 }
 
 func(m *matchEventSubscribeManager) MatchEventInput(ev *open.MatchEvent) {
-	for _, subscriber := range m.subscribers {
+	for _, subscriber := range _subscribers {
 		subscriber(m.topic, ev)
 	}
 }
@@ -42,23 +48,4 @@ func(m *matchEventSubscribeManager) MatchEventInput(ev *open.MatchEvent) {
 func matchEventPrint(topic string, ev *open.MatchEvent) {
 	data, _ := json.Marshal(ev)
 	log.Printf("%s\n", string(data))
-}
-
-var kafkaProducer = kafka_wrapper.NewAsyncProducer()
-
-func matchEventPushKafka(topic string, ev *open.MatchEvent) {
-	key := ev.MatchId
-	if key == "" {
-		key = uuid.NewString()
-	}
-	data, _ := json.Marshal(ev)
-	message := &sarama.ProducerMessage{
-		Topic: topic,
-		Key:   sarama.StringEncoder(key),
-		Value: sarama.ByteEncoder(data),
-	}
-
-	kafka_wrapper.MessageAdaptor(message)
-
-	kafkaProducer.Input() <- message
 }

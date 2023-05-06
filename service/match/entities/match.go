@@ -6,7 +6,6 @@ package entities
 import (
 	"context"
 	"github.com/Languege/flexmatch/service/match/proto/open"
-	match_game_api "github.com/Languege/flexmatch/service/match/api/game"
 	"github.com/google/uuid"
 	"time"
 )
@@ -221,49 +220,40 @@ func (m *Match) AllTickets() (tickets []*open.MatchmakingTicket) {
 
 // StartGameSession 开启游戏会话
 func (m *Match) StartGameSession() {
-	//假数据
-	if m.matchmaking.Conf.Debug {
-		m.GameSessionConnectionInfo = &open.GameSessionConnectionInfo{
-			GameSessionId: "battle#1@dev/1",
-			SvcID:         "battle#1@dev",
-			RoomID:        1,
+	resp, err := gameClient.CreateGameSession(context.TODO(), &open.CreateGameSessionRequest{
+		MatchId:                   m.MatchId,
+		GameProperties:            m.matchmaking.Conf.GameProperties,
+		GameSessionData:           m.matchmaking.Conf.GameSessionData,
+		Name:                      m.matchmaking.Conf.Name,
+		MaximumPlayerSessionCount: m.matchmaking.rsw.MatchPlayerNum,
+	})
+	if err != nil {
+
+		allTickets := m.AllTickets()
+		//票据状态变更
+		for _, ticket := range allTickets {
+			ticket.Status = open.MatchmakingTicketStatus_FAILED.String()
+			ticket.StatusReason = "CreateGameSessionFailed"
+			ticket.StatusMessage = err.Error()
 		}
-	} else {
-		resp, err := match_game_api.FlexMatchGameClient.CreateGameSession(context.TODO(), &open.CreateGameSessionRequest{
-			MatchId:                   m.MatchId,
-			GameProperties:            m.matchmaking.Conf.GameProperties,
-			GameSessionData:           m.matchmaking.Conf.GameSessionData,
-			Name:                      m.matchmaking.Conf.Name,
-			MaximumPlayerSessionCount: m.matchmaking.rsw.MatchPlayerNum,
-		})
-		if err != nil {
-
-			allTickets := m.AllTickets()
-			//票据状态变更
-			for _, ticket := range allTickets {
-				ticket.Status = open.MatchmakingTicketStatus_FAILED.String()
-				ticket.StatusReason = "CreateGameSessionFailed"
-				ticket.StatusMessage = err.Error()
-			}
-			//匹配失败事件上报
-			failedEvent := &open.MatchEvent{
-				MatchEventType: open.MatchEventType_MatchmakingFailed,
-				Tickets:        allTickets,
-				MatchId:        m.MatchId,
-				Reason:         "CreateGameSessionFailed",
-				Message:        err.Error(),
-			}
-
-			m.matchmaking.eventSubs.MatchEventInput(failedEvent)
-
-			return
+		//匹配失败事件上报
+		failedEvent := &open.MatchEvent{
+			MatchEventType: open.MatchEventType_MatchmakingFailed,
+			Tickets:        allTickets,
+			MatchId:        m.MatchId,
+			Reason:         "CreateGameSessionFailed",
+			Message:        err.Error(),
 		}
 
-		m.GameSessionConnectionInfo = &open.GameSessionConnectionInfo{
-			GameSessionId: resp.GameSession.GameSessionId,
-			SvcID:         resp.GameSession.SvcID,
-			RoomID:        resp.GameSession.RoomID,
-		}
+		m.matchmaking.eventSubs.MatchEventInput(failedEvent)
+
+		return
+	}
+
+	m.GameSessionConnectionInfo = &open.GameSessionConnectionInfo{
+		GameSessionId: resp.GameSession.GameSessionId,
+		SvcID:         resp.GameSession.SvcID,
+		RoomID:        resp.GameSession.RoomID,
 	}
 
 	for _, team := range m.Teams {

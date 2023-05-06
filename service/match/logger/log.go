@@ -30,7 +30,7 @@ var (
 )
 
 func init() {
-	InitLog("debug", false)
+	InitLog("debug", true)
 }
 
 // Logger logger interface

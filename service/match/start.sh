@@ -6,5 +6,5 @@ COMMIT_DATE=$(git log --pretty=format:"%cd" -1 --date=format:"%Y-%m-%d %H:%M:%S"
 echo "COMMIT_HASH:"${COMMIT_HASH}",COMMIT_DATE:"${COMMIT_DATE}
 
 
-go build -o=match -mod vendor -ldflags "-X \"git.soulgame.com/open/app/library/version.BuildVersion=${COMMIT_HASH}\" -X \"git.soulgame.com/open/app/library/version.BuildDate=${COMMIT_DATE}\" " main.go
+go build -o=match -mod vendor -ldflags "-X \"BuildVersion=${COMMIT_HASH}\" -X \"BuildDate=${COMMIT_DATE}\" " main.go
 ./match -config ./conf/main-local.yaml

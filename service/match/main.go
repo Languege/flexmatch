@@ -10,12 +10,18 @@ import (
 	"google.golang.org/grpc/reflection"
 	"log"
 	"net"
+	"github.com/Languege/flexmatch/service/match/entities"
+	"github.com/Languege/flexmatch/service/match/event_subscribers"
 )
 
 var(
 	BuildVersion string
 	BuildDate string
 )
+
+func init() {
+	entities.RegisterSubscribe(event_subscribers.KafkaMatchEventSubscribe)
+}
 
 
 func main() {
