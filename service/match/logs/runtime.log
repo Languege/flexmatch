@@ -2,3 +2,4 @@
 {"level":"info","ts":"2023-05-06T15:50:55.852+0800","caller":"kafka/producer.go:53","msg":"[kafka]closing kafka producer err <nil>"}
 {"level":"info","ts":"2023-05-06T15:53:34.658+0800","caller":"kafka/producer.go:53","msg":"[kafka]closing kafka producer err <nil>"}
 {"level":"info","ts":"2023-05-06T16:03:30.086+0800","caller":"kafka/producer.go:53","msg":"[kafka]closing kafka producer err <nil>"}
+{"level":"info","ts":"2023-05-06T16:45:22.666+0800","caller":"kafka/producer.go:53","msg":"[kafka]closing kafka producer err <nil>"}
