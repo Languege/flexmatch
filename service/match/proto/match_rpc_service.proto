@@ -1,0 +1,608 @@
+syntax = "proto3";
+
+package open;
+
+//待接入服务的对战服务器实现
+service FlexMatchGame {
+    rpc CreateGameSession(CreateGameSessionRequest) returns (CreateGameSessionResponse) {}
+}
+
+message CreateGameSessionRequest {
+    //最大玩家数
+   int32 MaximumPlayerSessionCount  = 1;
+
+    //游戏透传属性
+    repeated GameProperty GameProperties = 2;
+
+    //开启游戏会话时透传给游戏服务端的JSON数据
+    string GameSessionData = 3;
+
+    //匹配ID
+    string MatchId      = 4;
+
+    //游戏会话描述 传递对局配置名
+    string Name         = 5;
+
+    //匹配玩家信息
+    repeated MatchedPlayerSession Players = 6;
+}
+
+message CreateGameSessionResponse {
+    //游戏会话
+    GameSession         GameSession = 1;
+}
+
+//匹配服务
+service FlexMatch {
+    //rpc BattleResult(BattleResultRequest) returns (BattleResultResponse) {}
+
+    //创建一个新的对战配置
+    rpc CreateMatchmakingConfiguration(CreateMatchmakingConfigurationRequest) returns (CreateMatchmakingConfigurationResponse) {}
+    //检索对战配置
+    rpc DescribeMatchmakingConfiguration(DescribeMatchmakingConfigurationRequest) returns (DescribeMatchmakingConfigurationResponse) {}
+
+    //创建对战请求
+    rpc StartMatchmaking(StartMatchmakingRequest) returns (StartMatchmakingResponse) {}
+    //检索对战请求详细信息 (30秒仍为收到匹配事件，查询ticket状态)
+    rpc DescribeMatchmaking(DescribeMatchmakingRequest) returns (DescribeMatchmakingResponse) {}
+    //您可以随时通过调用，取消对战请求StopMatchmaking使用请求的票证 ID
+    rpc StopMatchmaking(StopMatchmakingRequest) returns (StopMatchmakingResponse) {}
+
+    //接受匹配
+    rpc AcceptMatch(AcceptMatchRequest) returns (AcceptMatchResponse) {}
+}
+
+message GameProperty  {
+    //属性key
+    string Key = 1;
+    //属性值
+    string Value = 2;
+}
+
+enum BackfillMode {
+    //匹配回填
+    AUTOMATIC = 0;
+    //MANUAL表示游戏提出回填请求或不使用匹配回填
+    MANUAL = 1;
+}
+
+//匹配配置 https://docs.aws.amazon.com/zh_cn/gamelift/latest/apireference/API_MatchmakingConfiguration.html
+message MatchmakingConfiguration {
+    //一个标志，表示用此配置创建的匹配是否必须被匹配的玩家接受。若要求接受，设置为TRUE。
+    //当这个选项被启用时，匹配票使用状态REQUIRES_ACCEPTANCE来指示完成的潜在匹配正在等
+    //待玩家接受。
+    // 必须：否
+    bool AcceptanceRequired = 1;
+
+    //如果需要接受，等待玩家接受提议的比赛的时间长度（秒）。如果有玩家拒绝比赛或在超时前没
+    //有接受，门票继续寻找可接受的比赛。
+    //值域： 1-600
+    // 必须： 否
+    int64   AcceptanceTimeoutSeconds = 2;
+
+    //AdditionalPlayerCount = 3
+
+    //用于回填用该匹配配置创建的游戏会话的方法。MANUAL表示游戏提出回填请求或不使用匹配回填
+    //功能。AUTOMATIC表示，只要游戏会话有一个或多个空位，GameLift就会创建StartMatchBackfill请求。
+    //了解更多关于手动和自动回填的信息，请参见用FlexMatch回填现有游戏。当FlexMatchMode设置为STANDALONE时，
+    //自动回填不可用。
+    //值域：AUTOMATIC | MANUAL
+    // 必须：否
+    string BackfillMode = 4;
+
+    //ConfigurationArn = 5
+
+
+    //CreationTime = 6
+
+    //CustomEventData = 7
+
+    //一个描述性的标签，与匹配配置有关。
+    // 必须：否
+    string Description = 8;
+
+    //表示该匹配配置是与GameLift托管一起使用还是作为独立的匹配解决方案。
+    //    STANDALONE - FlexMatch形成比赛，并在MatchmakingSucceeded事件中返回比赛信息，包括球员和球队的分配。
+    //    WITH_QUEUE - FlexMatch组建比赛并使用指定的GameLift队列来启动比赛的游戏会话。 （对局由其他服务实现！！！）
+    // 必须：否
+    string FlexMatchMode = 9;
+    //一组游戏会话的自定义属性，格式为键：值对。这些属性在GameSession对象中被传递给游戏服务器进程，
+    //并请求启动一个新的游戏会话（见启动游戏会话）。这些信息被添加到新的GameSession对象中，该对象
+    //是为一个成功的比赛而创建的。当FlexMatchMode设置为STANDALONE时，这个参数不被使用。
+    //必须：否
+    repeated GameProperty GameProperties = 10;
+
+    //开启游戏会话时透传给游戏服务端的JSON数据
+    string GameSessionData = 11;
+
+    //GameSessionQueueArns = 12;
+
+    //匹配配置的唯一标识符。该名称用于识别与匹配请求或票据相关的配置。
+    string Name  = 13;
+
+    //一个SNS主题ARN，它被设置为接收匹配通知。
+    string NotificationTarget = 14;
+
+    //匹配票在超时前可以保持在进程中的最大持续时间（秒）。由于超时而失败的请求可以根据需要重新提交。
+    //值域:1-43200 (12小时)
+    //必须:否
+    int64 RequestTimeoutSeconds = 15;
+
+    //规则集
+    MatchmakingRuleSet RuleSet = 16;
+
+    //匹配事件队列topic 默认和Name保持一致
+    string MatchEventQueueTopic = 17;
+
+    //调试模式： 调试模式下不会真正创建对局，且加强日志打印
+    bool Debug      = 18;
+}
+
+message PlayerAttribute {
+    //属性名
+    string Name = 1;
+    //数据类型
+    string Type = 2;
+    //属性值
+    string Value = 3;
+}
+
+//https://docs.aws.amazon.com/gamelift/latest/flexmatchguide/match-design-ruleset.html#match-rulesets-components-algorithm
+//你可以配置FlexMatch，在形成批次之前对票池进行分类。
+//这种类型的定制对有大票池的游戏最有效。批前排序可以帮助加快匹配过程，
+//提高玩家在定义特征上的统一性。
+//使用算法属性 batchingPreference 来定义批前排序方法。默认设置是random(也就是不做批前排序，按ticket加入到队列的时间)。
+message MatchmakingRuleAlgorithm {
+    //批次偏好，批前排序：
+    // sorted - 提供一个玩家属性列表，对票池进行预排序。然后，FlexMatch创建的批次在排序的属性上更加统一。
+    //          例如，如果你按玩家技能对票池进行预排序，FlexMatch会将技能水平相似的票放在一起。如果你的规
+    //          则集也包含了基于玩家技能的匹配规则，那么预批排序可以提高匹配效率。
+    string BatchingPreference = 1;
+    //玩家排序属性
+    repeated string SortByAttributes = 2;
+}
+
+enum MatchmakingRuleType {
+
+     MatchmakingRuleType_Unknown = 0;
+
+     //comparison-比较规则将一个玩家的属性值与另一个值进行比较。
+     //           比较规则属性：
+     //                  measurements(测量值)-要比较的玩家属性值。
+     //                  referenceValue(参考值)-将测量值与潜在的匹配值进行比较。作用是什么？ measurements里的值与referenceValue进行比较吗, operation为=或者!=时,可为空
+     //                  operation(运算符)-<, <=, =, !=, >, >=
+     //                  partyAggregation-决定FlexMatch如何处理有多个玩家（当事人）的门票的值。有效的选项包括票据玩家的最小（min）、最大（max）和平均（avg）值。默认值是avg。
+     MatchmakingRuleType_Comparison = 1;
+
+    //distance-距离规则衡量两个数字值之间的差异，如玩家技能水平之间的距离。例如，一个距离规则可能要求所有玩家至少玩了30个小时的游戏。
+    //          距离规则属性：
+    //                  measurements(测量值)-要测量距离的玩家属性值。这必须是一个有数值的属性。
+    //                  referenceValue(参考值)-用来衡量潜在匹配的距离的数值
+    //                  minDistance/maxDistance–成功匹配的最小或最大距离值。
+    //                  partyAggregation-如上
+    MatchmakingRuleType_Distance = 2;
+
+     //collection-集合规则（暂不实现）
+    MatchmakingRuleType_Collection = 3;
+
+     //batchDistance-批量距离规则测量两个属性值之间的差异。你可以在大匹配和小匹配中使用批量距离规则类型 (王者中段位匹配规则？不能和段位差距过大的参与匹配)
+     //              批量距离规则属性:
+     //                          batchAttribute-用来形成批次的玩家属性值
+     //                          maxDistance-成功匹配的最大距离值。用于比较数字属性。
+     //                          partyAggregation-如上
+     //例如，这种类型的批次距离规则可能要求比赛中的所有玩家都在彼此的两个技能等级之内。对于这种类型，定义所有票据的 batchAttribute 之间的最大距离。
+    MatchmakingRuleType_BatchDistance = 4;
+
+     //absoluteSort-绝对排序规则根据指定的球员属性，与添加到该批次的第一张票相比，对一批匹配票进行排序。
+     //              绝对排序规则属性：
+     //                          sortDirection-匹配票的排序顺序。有效选项包括ascending和descending
+     //                          sortAttribute-要对门票进行排序的玩家属性。
+     //                          partyAggregation-如上
+    MatchmakingRuleType_AbsoluteSort = 5;
+
+     //distanceSort-距离排序规则根据指定的球员属性与加入该批次的第一张票的距离，对一批匹配票进行排序。 和absoluteSort有什么区别？距离排序是取绝对值，绝对排序存在正负距离？
+     //              距离排序规则属性同absoluteSort
+    MatchmakingRuleType_DistanceSort = 6;
+}
+
+enum SortDirectionType {
+    //升序
+    Ascending = 0;
+
+    //降序
+    Descending = 1;
+}
+
+message MatchmakingRule {
+    //规则名
+    string Name = 1;
+    //规则描述
+    string Description = 2;
+
+    MatchmakingRuleType Type = 3;
+
+//    //属性表达式
+//    message PropertyExpression {
+//        //目标类型：team-团队, player-玩家, attribute-属性, value-值
+//        string TargetType = 1;
+//
+//        //团队名, 多个英文逗号分隔，通配符*匹配所有，TargetType为team、 player、 attributes时生效
+//        string TeamNames = 2;
+//
+//        //玩家Id过滤, 多个英文逗号分隔，通配符*匹配所有，TargetType为player、 attributes时生效
+//        string PlayerIds = 3;
+//
+//        //评估属性 TargetType为player、 attributes时生效
+//        string Attribute = 4;
+//
+//        //聚合函数（可选）， 当前仅支持avg（平均值)，count(计数)
+//        string AggregationFunction = 5;
+//
+//        //属性值
+//        double Value = 6;
+//    }
+
+    //测量值表达式
+    string Measurements = 4;
+
+    //参考值表达式
+    string  ReferenceValue = 5;
+
+    //最大筛选距离，Type为distance时生效，筛选目标匹配属性到当前值的最大绝对值（距离）
+    double MaxDistance = 6;
+
+    //比较运算符，Type为comparison时生效，包含：=, !=, <, <=, >, >=
+    string Operation = 7;
+
+    //决定FlexMatch如何处理有多个玩家（当事人）的门票的值。有效的选项包括票据玩家的最小（min）、最大（max）和平均（avg）值。默认值是avg
+    string PartyAggregation = 8;
+
+    //用来形成批次的玩家属性值
+    string BatchAttribute = 9;
+
+
+    //排序属性
+    string SortAttribute = 10;
+
+    //升序或降序
+    SortDirectionType SortDirection = 11;
+}
+
+message MatchmakingTeamConfiguration {
+    string Name = 1; //团队名称
+    int32   PlayerNumber = 2; //队员数
+}
+
+//匹配团队
+message MatchTeam {
+    MatchmakingTeamConfiguration Conf = 1; //团队定义
+    repeated MatchmakingTicket Tickets = 2; //票据
+}
+
+enum ComponentType {
+    //rules-规则
+    ComponentType_Rules = 0;
+
+    //teams-团队
+    ComponentType_Teams = 1;
+}
+
+message MatchmakingExpansionRuleTarget {
+    //组件类型 rules-规则 teams-团队
+    ComponentType ComponentType  = 1;
+
+    //组件名 例如 当ComponentName为rules，对规则minSkill进行扩展
+    string ComponentName = 2;
+
+    //目标组件属性,例如referenceValue
+    string Attribute = 3;
+}
+
+//扩张阶段
+message MatchmakingExpansionRuleStep {
+    //匹配等待时间
+    int64       WaitTimeSeconds = 1;
+
+    //扩张后的值
+    double      Value   = 2;
+}
+
+//扩张配置
+message MatchmakingExpansionRule {
+    //目标，例如选择规则minSkill的参考值为: {ComponentType:rules,ComponentName:minSKill,Attribute:referenceValue}
+    MatchmakingExpansionRuleTarget Target  = 1;
+
+    //固定扩张距离/次
+    double FixedExpansionDistance = 2;
+
+    //扩张阶段， FixedExpansionDistance为空时生效
+    repeated MatchmakingExpansionRuleStep Steps = 3;
+}
+
+//创建匹配池
+message MatchmakingRuleSet {
+    //string  Name    = 1; //规则名称
+
+    //玩家属性
+    repeated PlayerAttribute  PlayerAttributes = 2;
+
+    //团队
+    repeated MatchmakingTeamConfiguration Teams = 3;
+
+    repeated MatchmakingRule Rules     = 4; //规则集
+
+    repeated MatchmakingExpansionRule Expansions  = 5; //匹配扩张配置
+
+    MatchmakingRuleAlgorithm Algorithm = 6; //排序算法
+}
+
+//匹配事件类型
+enum MatchEventType {
+    //MatchmakingSearching 票据已被输入到匹配中。这包括新的请求和属于潜在匹配失败的请求。
+    MatchmakingSearching = 0;
+    //PotentialMatchCreated 一个潜在的匹配已经被创建。对于所有新的潜在匹配，不管是否需要接受，都会发出这个消息。
+    PotentialMatchCreated = 1;
+    //AcceptMatch 玩家已经接受了一场潜在的比赛。这个事件包含了比赛中每个玩家的当前接受状态。缺少的数据意味着AcceptMatch还没有为该玩家调用。
+    AcceptMatch = 2;
+    //AcceptMatchCompleted 由于玩家接受、玩家拒绝或接受超时，比赛接受完成。
+    AcceptMatchCompleted = 3;
+    //MatchmakingSucceeded 匹配已经成功完成，并且已经创建了一个游戏会话。
+    MatchmakingSucceeded = 4;
+    //MatchmakingTimedOut 匹配票因超时而失败。
+    MatchmakingTimedOut = 5;
+    //MatchmakingCancelled  匹配票已被取消。
+    MatchmakingCancelled = 6;
+    //MatchmakingFailed
+    //匹配票遇到了一个错误。这可能是由于游戏会话队列无法访问或内部错误造成的。
+    MatchmakingFailed = 7;
+}
+//匹配事件
+message MatchEvent {
+    //事件类型
+    MatchEventType MatchEventType = 1;
+    //匹配票
+    repeated MatchmakingTicket Tickets = 2;
+    //预计等待时间（毫秒） MatchmakingSearching 存在
+    int64 EstimatedWaitMillis = 3;
+    //是否要求匹配接受
+    bool AcceptanceRequired = 4;
+    //匹配接受超时时间（秒）PotentialMatchCreated 存在
+    int64 AcceptanceTimeout = 5;
+    //匹配ID PotentialMatchCreated,AcceptMatch,AcceptMatchCompleted,MatchmakingSucceeded存在
+    string MatchId = 6;
+    //匹配接受阶段完成原因 AcceptMatchCompleted 存在
+    string AcceptanceCompletedReason = 7;
+    //原因 值域：TimedOut|Cancelled|UNEXPECTED_ERROR。MatchmakingTimedOut,MatchmakingCancelled,MatchmakingFailed 存在
+    string Reason = 8;
+    //对原因的描述
+    string Message = 9;
+    //游戏回话信息
+    GameSessionConnectionInfo  GameSessionInfo = 10;
+}
+
+//玩家会话
+message MatchedPlayerSession {
+    int64       UserId  = 1; //玩家ID
+    string      AgentSvcID = 2; //网关服务ID
+    string      AgentSessionID = 3; //网关会话ID
+    string      Team = 4; //团队
+}
+
+//响应StartMatchmaking请求而创建的新游戏会话的连接信息。一旦匹配成功，FlexMatch引擎将为其创建一个新的游戏会话。
+//这些信息，包括原始匹配请求中每个玩家的游戏会话端点和玩家会话，被添加到MatchmakingTicket中，
+//可以通过调用DescribeMatchmaking检索。
+message GameSessionConnectionInfo {
+    //游戏会话唯一标识
+    string     GameSessionId = 1;
+
+    //对战节点服务唯一标识
+    string     SvcID        = 2;
+
+    //对战房间ID
+    int64      RoomID       = 3;
+
+    repeated MatchedPlayerSession Players = 4;
+}
+
+//描述一个游戏会话的属性。 https://docs.aws.amazon.com/zh_cn/gamelift/latest/apireference/API_GameSession.html
+//一个处于活跃状态的游戏会话可以接待玩家。当一个游戏会话结束时，它的状态被设置为终结。
+//一旦会话结束，游戏会话对象将保留30天。这意味着你可以在这个时间之后重新使用idempotency令牌值。游戏会话日志会保留14天。
+message GameSession {
+    //游戏会话创建时间
+    int64       CreationTime = 1;
+    //游戏会话玩家数
+    int64       CurrentPlayerSessionCount = 2;
+    //游戏属性
+    repeated GameProperty GameProperties = 3;
+    //透传字符
+    string      GameSessionData = 4;
+    //游戏会话唯一标识    SvcID/RoomId
+    string      GameSessionId = 5;
+    //游戏会话描述
+    string      Name = 6;
+    //状态
+    string      Status = 7;
+    //状态原因
+    string      StatusReason = 8;
+    //对局服务器ID, 当游戏希望控制对局的负载均衡时使用
+    string     SvcID        = 9;
+    //对战房间ID
+    int64      RoomID       = 10;
+}
+
+enum MatchmakingTicketStatus {
+    // QUEUED-匹配请求已经收到，目前正在等待处理。
+    QUEUED = 0;
+
+    // SEARCHING-匹配请求目前正在处理中。
+    SEARCHING = 1;
+
+    // REQUIRES_ACCEPTANCE-匹配已被提出，玩家必须接受该匹配（见AcceptMatch）。该状态仅用于使用具有玩家接受要求的匹配配置的请求。
+    REQUIRES_ACCEPTANCE = 2;
+
+    // PLACING-FlexMatch引擎已经匹配了玩家，并正在为比赛安排新的游戏环节。
+    PLACING = 3;
+
+    // COMPLETED-玩家已被匹配，游戏会话已准备好接待玩家。在这种状态下的票据包含了玩家的必要连接信息。
+    COMPLETED = 4;
+
+    // FAILED-匹配请求没有完成
+    FAILED = 5;
+
+    // CANCELLED-他的匹配请求被取消了。这可能是调用StopMatchmaking的结果，或者是一个或多个玩家没有接受的拟议比赛。
+    CANCELLED = 6;
+
+    // TIMED_OUT-匹配请求在匹配配置中指定的持续时间内没有成功。
+    TIMED_OUT = 7;
+}
+
+//匹配票
+message MatchmakingTicket {
+    //票ID
+    string TicketId = 1;
+    //开始时间
+    int64 StartTime = 2;
+    //单人或组队玩家信息
+    repeated MatchPlayer Players = 3;
+
+    //状态 参见MatchmakingTicketStatus定义
+    string Status = 4;
+    //解释当前状态的代码。例如，一个状态原因可能表明，当一张票在提议的比赛未能收到玩家的接受后，返回到搜索状态。
+    string StatusReason = 5;
+    //有关当前状态的其他信息。
+    string StatusMessage = 6;
+    //完成时间
+    int64 EndTime = 7;
+    //对战配置的名称
+    string ConfigurationName = 8;
+    //预计等待时间（单位秒）
+    int64 EstimatedWaitTime = 9;
+
+    //匹配对局唯一ID （辅助字段）
+    string MatchId      = 10;
+    //接收到取消请求 （延迟取消辅助字段）
+    bool CancelRequest = 11;
+    //完成潜在对局匹配的耗时（单位秒）
+    int64  PotentialMatchCostSeconds = 12;
+    //游戏对局会话连接信息
+    GameSessionConnectionInfo  GameSessionInfo = 13;
+}
+
+
+//玩家对局结果
+message PlayerBattleResult {
+    int64   UserId          = 1; //玩家ID
+    double  GainScore       = 2; //得分，胜-1.0， 失败-0.5
+    double  GainExpectScore = 3; //预期得分（对局分差计算而得）
+    double  Diff            = 4; //分差
+}
+
+message PlayerBattleRecordList {
+    repeated PlayerBattleResult RecordList = 1; //玩家对局记录
+}
+
+
+//玩家战力相关信息
+message MatchPlayer {
+    int64       UserId  = 1;    //用户ID
+    bool        Accepted = 2;   //匹配接受状态 true-已接收 false-未接受
+    //玩家属性
+    repeated PlayerAttribute Attributes = 3;
+}
+
+//对局结果
+message BattleResult {
+    repeated MatchPlayer PlayerList = 1; //玩家列表
+    string WinCamp = 3; //获胜阵营 red-红方胜利， blue-蓝方胜利
+}
+
+//战斗结果
+message BattleResultRequest {
+    string  Key         = 1;  //匹配池key
+    BattleResult    result = 2; //对局结果
+}
+
+message BattleResultResponse {
+
+}
+
+
+message CreateMatchmakingConfigurationRequest {
+    //媒人配置
+    MatchmakingConfiguration Configuration = 1;
+}
+
+message CreateMatchmakingConfigurationResponse {
+
+}
+
+//检索对战配置
+message DescribeMatchmakingConfigurationRequest {
+    string  ConfigurationName = 1;
+}
+
+//检索对战配置
+message DescribeMatchmakingConfigurationResponse {
+    MatchmakingConfiguration Configuartion = 1;
+}
+
+//创建对战请求
+message StartMatchmakingRequest {
+    //要用于请求的对战配置的名称
+    string ConfigurationName = 1;
+    //票ID
+    string TicketId = 2;
+    //单人或组队玩家信息
+    repeated MatchPlayer Players = 3;
+}
+
+//创建对战响应
+message StartMatchmakingResponse {
+
+}
+
+//检索对战请求详细信息
+message DescribeMatchmakingRequest {
+   //票证ID
+   repeated string  TicketIds            = 1;
+}
+
+//检索对战请求详细信息
+message DescribeMatchmakingResponse {
+    repeated MatchmakingTicket TicketList     = 2;
+}
+
+//取消对战请求 不需要对局配置名, 难道是因为TicketId在所有匹配池均唯一，而且需要持久化，或者票据和服务节点的映射关系交于游戏服务器维护
+// 每个匹配rpc服务带有SvcID, 游戏初始为票据分配节点后，后续该票据请求仍请求该节点。匹配服务节点只是需要通过票据ID获取媒介
+message StopMatchmakingRequest {
+    //票证ID
+    string TicketId     = 1;
+}
+
+//取消对战响应
+message StopMatchmakingResponse {
+
+}
+
+enum AcceptanceType {
+    UNKNOWN = 0;
+    ACCEPT = 1;
+    REJECT = 2;
+}
+//接受匹配
+message AcceptMatchRequest {
+    //要用于请求的对战配置的名称
+    string          ConfigurationName       = 1;
+    // 玩家对潜在匹配的响应 ACCEPT-接受, REJECT-拒绝
+    AcceptanceType  AcceptanceType          = 2;
+
+    //玩家ID
+    repeated int64 PlayerIds       = 3;
+
+    //票据ID
+    string  TicketId = 4;
+}
+
+//接受匹配响应
+message AcceptMatchResponse {
+}

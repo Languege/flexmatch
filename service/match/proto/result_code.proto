@@ -1,0 +1,275 @@
+syntax = "proto3";
+package open;
+
+
+enum ResultCode {
+    SUCCESS = 0;
+    ErrUnknown = 1;
+
+    Error401 = 401;
+    Error403 = 403;
+    Error404 = 404;
+
+    Aborted = 410; //请求丢弃
+
+    Error500 = 500;
+    Error503 = 503;
+
+    ProtoParseFailure = 1001; //协议解析失败
+    ParamMust = 1002; //必要参数缺失
+
+    ObjectNull = 1003; //空对象
+    AccessBindFailure = 1004; //绑定失败
+    DBUnreachable = 1005; //DB不可达
+    AppNotExist = 1006; //应用不存在
+    ShardServerIdMust = 1007; //分服应用逻辑服ID必须
+    ShardGenUserIdFailure = 1008; //用户ID生成失败
+    RegisterFailure = 1009; //注册失败
+    BindInfoFailure = 1010; //绑定信息失败
+    HotFixVersionFormatErr = 1011; //热更版本格式错误
+    ParamInvalid = 1012; //参数不可用
+    LoginServiceException = 1013; //登录区服异常
+    PaySignErr = 1014; // 支付签名错误
+    UnSupportPayWay = 1015; // 不支持的支付网关
+    AppPaySettingErr = 1016; // 应用支付设置错误
+    InvalidReceipt = 1017; // 不可用收据
+    ReceiptHasUsed = 1018; // 收据已经使用
+    PayIdGenFailure = 1019; //支付ID生成失败
+    AppStoreDisconnected = 1020; //AppStore连接失败
+    AppStoreReceiptNoTransaction = 1021; // AppStore交易信息缺失
+    PayMethodNotSupportYield = 1022; // 不支持的交易信息
+    ChannelPayPrivateKeyInvalid = 1023; // 渠道支付密钥不可用
+    CreateSignFailure = 1024; // 创建签名失败
+    NoIMAgent = 1025; // 没有可用
+    UserNotExist = 1026; // 用户不存在
+    GachaNotUnlock = 1027; // 卡池未解锁
+    ConfTableErr = 1028; // 配置表错误
+    GachaUpLimit = 1029; // 抽卡次数达到上限
+    FreeNumNotEnough = 1030; //免费次数不足
+    DBExecFailure = 1031; // DB执行失败
+    GachaHasUnlock = 1032; // 卡池
+
+    SignNotUnlock = 1033; // 签到未解锁
+    SignActivityNotStartOrHasEnd = 1034; //签到活动未开启或已解锁
+    SignNotAllowRepair = 1035; //不允许补签
+    SignNoNeedRepair = 1036; //不需要进行补签
+    HasSignToday = 1037; //今日已签到
+    SignFailure = 1038; //签到失败
+
+
+    RandRewardFailure = 1039; //随机奖励失败，大概率配置问题
+
+
+    UserTaskNotExist = 1040; //用户任务不存在
+    UserTaskNotComplete = 1041; //用户任务未完成
+    UserTaskHasGainReward = 1042; //已经领取任务奖励
+    TaskGainRewardFailure = 1043; //任务领取失败
+
+    XLockFailure = 1044; //分布式锁抢锁失败
+
+    UserStoreNotExist = 1045; //商店不存在
+    UserStoreReachRefreshUpLimit = 1046; //商店刷新次数达到上限
+    UserStoreRefreshFailure = 1047; //商店刷新失败
+    UserStoreGoodNotSell = 1048; //商店商品未开始销售
+
+    NotSupportBuyWay = 1049; //不支持的购买方式
+
+    SystemInterval = 1050; //系统内部错误
+
+    CronEntryNotFound = 1051; //定时任务不存在
+    CronAppNotFound = 1052; //定时应用不存在
+
+    NoAvailableServer = 1053; //没用可用区服
+
+    SearchWordEmpty = 1054; //搜查词不能为空
+    ReachMaxFriendNumLimit = 1055; //到达好友人数上限
+
+    ExistInOtherUnion = 1056; //已经在其他工会中
+    UnknownUnionType = 1057; //未知工会类型
+    UnionMinLevelCannotOutOfSelfLevel = 1058; //工会限制等级条件不得超过自身等级
+    UnionNameHasUsed = 1059; //工会名已经被使用
+    UnionIDGenFailure = 1060; //工会ID生产失败
+    UnionNotFound = 1061; //工会不存在
+    UnionHasIn = 1062; //已在该工会中
+    UnionMinLevelNotReach = 1067; //工会最低等级未达到
+    UnionMemberReachUpLimit = 1068; //工会成员已到达上线
+    UnionHasAppliedPreviously = 1069; //之前已经申请过了加入改工会
+    UnionNoApplyRecord = 1070; //工会申请记录不存在
+    UnionPermissionDeny = 1071; //没有该工会操作权限
+    UnionNotMember = 1072; //非工会成员
+    UnionReachDutyUpLimit = 1073; //到达工会职称数量上限
+
+
+    MailNotExist = 1074; //邮件不存在
+    MailNoReward = 1075; //邮件无附件（奖励）
+
+    CdkeyNotExist = 1076; //Cdkey不存在
+    CdkeyExpired = 1077; //Cdkey已过期
+    CdkeyReachExchangeLimit = 1078; //超过兑换上限
+    CdkeyExchangeOnlyOnce = 1079; //同批次cdkey仅可兑换一次
+    CdkeyNotReady = 1080; //Cdkey尚未达到兑换期
+    CdkeyHasExchanged = 1081; //Cdkey已兑换
+    CdkeyRewardNotConfig = 1082; //Cdkey未配置奖励
+
+    HasBindPreviously = 1083; //之前已绑定
+    InviteCodeInvalid = 1084; //邀请码不可用
+
+    NicknameRepeated = 1085; //昵称重复
+    VersionTooLow = 1086; //客户端版本过低
+    PlatformTokenVerifyFail = 1087; //第三方平台token验证失败
+    ClientMd5Invalid = 1088; //客户端配置表md5不可用 （预留）
+
+    CronAppRegisterFailure = 1089; //定时任务注册失败
+
+    ApkSignNotMatch = 1090; //客户端包签名不匹配
+    BodySignNotMatch = 1091; //消息签名不匹配
+
+
+    NumNotEnough = 1100; //数量不足
+    UserNotInApp = 1101; //用户和app不匹配
+    AccessTokenInvalid = 1102; //访问token不可用
+    AccessTokenExpired = 1103; //访问token已过期
+    SensitiveWord = 1104; //敏感词
+    AppServerNotConfigured = 1105; //区服ID未配置
+    AppServerStatusReady = 1106; //区服尚未开放
+    AppServerMaintain = 1107; //服务器维护中
+    AppServerReachMaxPlayerNum = 1108; //区服达到最大注册人数
+
+    MailRewardHasGain = 1109; //邮件奖励已领取
+    GamePayPrivateKeyNotConfigured = 1110; //游戏支付私钥未配置
+    GamePayPrivateKeyInvalid = 1111; //游戏支付私钥无效
+
+    SystemMailTplNotExist = 1112; //系统邮件模板未创建
+
+
+    GiftPackageNotUnlock = 1113; //礼包尚未解锁
+    GiftPackageFreeGainReachMax = 1114; //礼包免费领取次数达到上限
+    GiftPackagePurchaseReachMax = 1115; //礼包购买次数达到上限
+    GiftPackageNotSupportMoneyBuy = 1116; //礼包不支持真钱购买
+    GiftPackageNotSupportGameCoin = 1117; //礼包不支持游戏币购买
+
+    NoPurchasePerm = 1118; //没有购买权限
+    InvalidMonthCard = 1119; //非月卡用户
+    MonthCardExpired = 1120; //月卡已过期
+    MonthCardHasGainedToday = 1121; //当日专属奖励已领取
+    MonthCardRewardPatchErr = 1122; //补发专属奖励出错
+
+
+    SinaPackageChannelNotConfigured = 1123; //sina发包渠道参数未配置
+
+    AutiAddictionPeriod = 1124; //防沉迷时间段内禁止登录和游戏
+
+    OtherReachMaxFriendNumLimit = 1125; //他人到达好友人数上限
+    NoReceivableFriendReward = 1126; //没有可领取的好友赠送
+    OutOfDailyReceivedFriendRewardLimit = 1127; //超出每日领取上限
+
+
+    ActivityNotConfigured = 1128; //活动配置
+    ActivityNotReady = 1129; //互动未开始
+    ActivityHasOver = 1130; //活动已结束
+
+    UnionNameLengthOutOfLimit = 1131; //工会昵称长度超限制
+    SamePidInUnion = 1132; //已有同sdk账号在工会中
+
+    NoIMWorker = 1133; //没有可用的IM Worker服务
+
+    LoginForbidden = 1134; //登陆封禁中
+    ChatForbidden = 1135; //聊天封禁中
+    PayForbidden = 1136; //支付封禁中
+
+    HasBeenBlack = 1137; //已被拉黑
+    BlackOutOfLimit = 1138; //黑名单超上限
+
+    AppServerIdNotSame = 1139; //账号区服和用户区服ID不一致
+
+    AccountMerging = 1140; //账号数据合服中
+
+    OutOfMaxRoomNumLimit = 1141; //超过房间成员数上限
+    GroupNotExist = 1142; //组不存在
+    MemberNotInGroup = 1143; //成员不在组中
+
+    DistributedLocking = 1144; //分布式锁
+
+    CdkeyCondNotMatch = 1145; //cdkey条件未满足
+
+    RequestTooFast = 1146; //请求过快
+
+    ChatTextRepeated = 1147; //聊天内容重复
+
+    UserStoreGoodsBuyTimesOutOfLimit = 1148; //商店单个商品购买次数超出上限
+    UserStoreBuyTimesOutOfLimit = 1149; //商店购买次数超出上限
+
+    AccessHasBindOtherAccount = 1150; //访问方式已绑定其他账号
+
+    GachaPoolExpired = 1151; //卡池已失效
+
+    KSPackageChannelNotConfigured = 1152; //快手渠道未配置
+
+    PackageChannelNotConfiugred = 1153; //发包渠道未配置
+
+    RsaKeyGenerateFailure = 1154; //rsa 非对接公私钥生成失败
+    GachaNoAvialableDetails = 1155; //没有可供抽卡的卡牌
+
+    RsaChiperDecryptionFailure = 1156; //Rsa密文解密失败
+    UserNotVerifyREQ = 1159; //用户未登陆验证
+    MsgHeadEmpty = 1160; //消息头缺失
+
+    MsgMetaNotRegistered = 1161; //消息未注册
+    MsgDecodeFailure = 1162; //消息解析失败
+
+    KsAppNotConfigured = 1163; //快手应用信息未配置
+    AccessNotExist = 1164; //访问方式不存在
+
+    LeitingPackageChannelNotConfigured = 1165; //雷霆渠道未配置
+
+
+    //匹配服务相关 1200-1299
+
+    //对局配置已存在
+    MatchmakingConfigurationHasExist = 1200;
+
+    //对局配置保存失败
+    MatchmakingConfigurationSaveFailure = 1201;
+
+    //对局媒介未设置
+    MatchmakingNotSetting = 1202;
+
+    //匹配无法加入（重复加入或队列已满）
+    MatchmakingTicketCannotQueued = 1203;
+
+    //停止/取消匹配失败
+    StopMatchmakingFailed = 1204;
+
+
+    //帧同步房间相关 1300-1399
+
+    //对局状态不处于Ready或Gaming，不允许加入房间
+    BattleStateNotReadyOrGaming = 1300;
+
+    //用户不属于该对局房间
+    PlayerNotBelongToBattleRoom = 1301;
+
+    //指令压入失败
+    PushCmdIntoFrameDataFailed = 1302;
+
+    //创建对局房间失败
+    CreateGameRoomFailed = 1303;
+
+    //对局房间不存在
+    BattleRoomNotFound = 1304;
+
+    //对局快照为空
+    BattleSnapshotIsNil = 1305;
+
+    //实名认证失败
+    IdCardBindFailure = 1306;
+    //请输入有效的身份证号码
+    IdCardInvalid = 1307;
+    //身份证号和姓名不一致
+    IdCardNotMatch = 1308;
+    //暂无信息
+    IdCardNoDB = 1309;
+
+    //月卡添加天数失败
+    MonthCardAddDaysFailure = 1310;
+}
