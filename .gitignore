@@ -1,3 +1,5 @@
 .idea
 vendor
 service/match/match
+
+service/match/logs/*

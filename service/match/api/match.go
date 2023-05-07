@@ -4,24 +4,19 @@
 package match_api
 
 import (
-	"github.com/spf13/viper"
 	"google.golang.org/grpc"
 	"context"
 	"github.com/Languege/flexmatch/service/match/proto/open"
 	"log"
+	"fmt"
+	"github.com/spf13/viper"
 )
 
 var(
-	endpoint string
 	FlexMatchClient open.FlexMatchClient
 )
 
 func init() {
-	if viper.IsSet("rpc.endpoints.match") {
-		endpoint = viper.GetString("rpc.endpoints.match")
-	}else{
-		endpoint = viper.GetString("project") + ".match.rpc"
-	}
 	var err error
 	FlexMatchClient, err = newMatchClient()
 	if err != nil {
@@ -30,7 +25,8 @@ func init() {
 }
 
 func newMatchClient() (open.FlexMatchClient,error) {
-	conn, err := grpc.DialContext(context.TODO(), "127.0.0.1:10007")
+	addr := fmt.Sprintf("127.0.0.1:%d", viper.GetInt("rpc.port"))
+	conn, err := grpc.DialContext(context.TODO(), addr)
 	if err != nil {
 		return nil, err
 	}

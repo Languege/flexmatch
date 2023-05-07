@@ -5,8 +5,9 @@ package entities
 
 import (
 	"github.com/Languege/flexmatch/service/match/proto/open"
-	"encoding/json"
-	"log"
+	"github.com/Languege/flexmatch/service/match/logger"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 //初始订阅设置
@@ -45,7 +46,23 @@ func(m *matchEventSubscribeManager) MatchEventInput(ev *open.MatchEvent) {
 	}
 }
 
+type matchEventMarshal struct {
+	open.MatchEvent
+}
+
+func newMatchEventMarshal(ev *open.MatchEvent) *matchEventMarshal {
+	return &matchEventMarshal{
+		MatchEvent:*ev,
+	}
+}
+
+func(m *matchEventMarshal) MarshalLogObject(enc zapcore.ObjectEncoder) error {
+	enc.AddInt64("AcceptanceTimeout", m.AcceptanceTimeout)
+
+	return nil
+}
+
 func matchEventPrint(topic string, ev *open.MatchEvent) {
-	data, _ := json.Marshal(ev)
-	log.Printf("%s %s\n", ev.MatchEventType, string(data))
+	logger.Infow("", zap.String("topic", topic), zap.String("MatchEventType", ev.MatchEventType.String()),
+		zap.Object("ev", newMatchEventMarshal(ev)))
 }

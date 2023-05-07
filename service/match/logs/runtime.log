@@ -1,5 +1,0 @@
-{"level":"error","ts":"2023-05-06T15:20:14.887+0800","caller":"match/main.go:39","msg":"test 2023-05-06 15:20:14.887972 +0800 CST m=+0.033133459","stacktrace":"main.main\n\t/Users/liugaoyun/gocode/src/github.com/Languege/flexmatch/service/match/main.go:39\nruntime.main\n\t/usr/local/go/src/runtime/proc.go:225"}
-{"level":"info","ts":"2023-05-06T15:50:55.852+0800","caller":"kafka/producer.go:53","msg":"[kafka]closing kafka producer err <nil>"}
-{"level":"info","ts":"2023-05-06T15:53:34.658+0800","caller":"kafka/producer.go:53","msg":"[kafka]closing kafka producer err <nil>"}
-{"level":"info","ts":"2023-05-06T16:03:30.086+0800","caller":"kafka/producer.go:53","msg":"[kafka]closing kafka producer err <nil>"}
-{"level":"info","ts":"2023-05-06T16:45:22.666+0800","caller":"kafka/producer.go:53","msg":"[kafka]closing kafka producer err <nil>"}

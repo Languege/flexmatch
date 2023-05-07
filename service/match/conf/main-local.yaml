@@ -23,5 +23,8 @@ kafka:
     - 10.10.10.16:9092
   prefix: local_
 
+log:
+  path: ./logs
+
 stat:
   port: 7007

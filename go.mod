@@ -16,6 +16,7 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475
 	github.com/spf13/viper v1.7.0
+	go.uber.org/atomic v1.7.0
 	go.uber.org/zap v1.21.0
 	google.golang.org/grpc v1.26.0
 )

@@ -35,6 +35,8 @@ func init() {
 
 // Logger logger interface
 type Logger interface {
+	Info(args ...interface{})
+	Infow(msg string, args ...interface{})
 	Debugf(format string, args ...interface{})
 	Infof(format string, args ...interface{})
 	Warnf(format string, args ...interface{})
@@ -47,7 +49,7 @@ func InitLog(level string, debug bool) {
 	logDir, err := filepath.Abs(viper.GetString("log.path"))
 	FatalIfError(err)
 
-	InitLog2(level, logDir + "/runtime.log", 1, `{"filename":"runtime.log","MaxAge":7}`, debug)
+	InitLog2(level, StdOut + "," + logDir + "/runtime.log", 1, `{"filename":"runtime.log","MaxAge":7}`, debug)
 }
 
 // InitLog2 specify advanced log config
@@ -67,6 +69,7 @@ func InitLog2(level string, outputs string, logRotationEnable int64, logRotateCo
 	config.OutputPaths = outputPaths
 	p, err := config.Build(zap.AddCallerSkip(1))
 	FatalIfError(err)
+
 	logger = p.Sugar()
 }
 
@@ -96,16 +99,24 @@ func loadConfig(logLevel string, debug bool) zap.Config {
 	err := config.Level.UnmarshalText([]byte(logLevel))
 	FatalIfError(err)
 	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	if debug {
-		config.Encoding = "console"
-		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	}
+	//if debug {
+	//	config.Encoding = "console"
+	//	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	//}
 	return config
 }
 
 // Debugf log to level debug
 func Debugf(fmt string, args ...interface{}) {
 	logger.Debugf(fmt, args...)
+}
+
+func Info(args ...interface{}) {
+	logger.Info(args...)
+}
+
+func Infow(msg string, args ...interface{}) {
+	logger.Infow(msg, args...)
 }
 
 // Infof log to level info

@@ -72,31 +72,33 @@ func newTicket() *open.MatchmakingTicket {
 
 func TestMatchmaking_TicketInput(t *testing.T) {
 	conf := defaultConf()
-	conf.AcceptanceRequired = false
+	//conf.AcceptanceRequired = false
 	matchmaking := NewMatchmaking(conf)
 
 	wg := &sync.WaitGroup{}
 	matchmaking.eventSubs.Register(func(topic string, ev *open.MatchEvent) {
 		switch ev.MatchEventType {
 		case open.MatchEventType_PotentialMatchCreated:
-			wg.Done()
-			if ev.AcceptanceRequired {
-				//循环接收对局
-				for _, ticket := range ev.Tickets {
-					for _, player := range ticket.Players {
-						time.Sleep(time.Millisecond * 100)
-						err := matchmaking.AcceptMatch(ticket.TicketId, player.UserId, open.AcceptanceType_ACCEPT)
-						if err != nil {
-							t.Fatal(errors.ErrorStack(err))
+			go func() {
+				wg.Done()
+				if ev.AcceptanceRequired {
+					//循环接收对局
+					for _, ticket := range ev.Tickets {
+						for _, player := range ticket.Players {
+							time.Sleep(time.Millisecond * 100)
+							err := matchmaking.AcceptMatch(ticket.TicketId, player.UserId, open.AcceptanceType_ACCEPT)
+							if err != nil {
+								t.Fatal(errors.ErrorStack(err))
+							}
 						}
 					}
 				}
-			}
+			}()
 		}
 	})
 
 	st := time.Now()
-	N := 2000
+	N := 1
 	wg.Add(N)
 	for i := 0; i < N; i++ {
 		for j := 0;j < 10; j++ {

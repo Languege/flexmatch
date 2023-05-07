@@ -24,16 +24,16 @@ bash start.sh
 
 #### 3. 快速开始
 ##### 3.1. 启动对局demo battle服务
-启动脚本service/cellmesh_im/svc/battle/gourmetship_start.sh
+启动脚本service/battle/start.sh
 
 ##### 3.2 启动匹配服务
-启动脚本service/cellmesh_im/svc/match/start.sh
+启动脚本service/match/start.sh
 
 ##### 3.3 测试对局并消费匹配事件
-测试用例`TestMatchEventConsume`位于service/cellmesh_im/svc/match/api/test下，由于battle、match服务均使用的main-local.yaml, 测试`TestMatchEventConsume`时可指定配置配置为conf/main-local.yaml, 或临时修改文件名为main-local
+测试用例`TestMatchEventConsume`位于service/match/api/test下，由于battle、match服务均使用的main-local.yaml, 测试`TestMatchEventConsume`时可指定配置配置为conf/main-local.yaml, 或临时修改文件名为main-local
 
-#### !!#ff0000 3.4 游戏对各个事件进行处理!!
-考虑到实际使用过程中，部分信息中台无法获知，游戏的推送交于游戏自定义。测试用例`TestMatchEventConsume`中TODO部分交于游戏实现。
+#### 3.4 游戏对各个事件进行处理
+考虑到实际使用过程中，部分信息匹配服务无法获知，游戏的推送交于游戏自定义。测试用例`TestMatchEventConsume`中TODO部分交于游戏实现。
 
 考虑到消息推送可能存在丢失的情景，客户端应设置保底时长，超过阈值时对票据状态进行轮询，
 对应的匹配服务接口`DescribeMatchmaking`
@@ -48,7 +48,7 @@ bash start.sh
 | `200` | `5586288` |
 |`2000`|`1338885`|
 
-测试用例`TestMatchmaking_TicketInput`位于service/cellmesh_im/svc/match/entities/matchmaking_test.go中
+测试用例`TestMatchmaking_TicketInput`位于service/match/entities/matchmaking_test.go中, 参数N设置对局数
 
 ### 其他
 本服务为亚马逊匹配服务的实现，变动如下
