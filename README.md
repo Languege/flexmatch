@@ -5,7 +5,9 @@
 
 - [ ] kafka 事件的接口封装 客户端
 
-- [ ] metrics
+- [ ] redis 的匹配事件订阅和消费
+
+- [ ] metrics: 预计匹配时长
 
 - [ ] pprof
 

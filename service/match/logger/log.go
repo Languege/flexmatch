@@ -4,106 +4,81 @@
 package logger
 
 import (
-	"github.com/natefinch/lumberjack"
+	_ "github.com/Languege/flexmatch/service/match/conf"
 	"go.uber.org/zap"
-	"net/url"
-	"encoding/json"
 	"log"
 	"go.uber.org/zap/zapcore"
-	"strings"
-	"fmt"
 	"github.com/spf13/viper"
-	"path/filepath"
+	"strings"
 )
 
-
-
-const (
-	// StdErr is the default configuration for log output.
-	StdErr = "stderr"
-	// StdOut configuration for log output
-	StdOut = "stdout"
-)
 
 var (
 	logger Logger
 )
 
+//日志初始化
 func init() {
-	InitLog("debug", true)
-}
+	RegisterSinkLumberjackSink()
 
-// Logger logger interface
-type Logger interface {
-	Info(args ...interface{})
-	Infow(msg string, args ...interface{})
-	Debugf(format string, args ...interface{})
-	Infof(format string, args ...interface{})
-	Warnf(format string, args ...interface{})
-	Errorf(format string, args ...interface{})
-}
-
-// InitLog is an initialization for a logger
-// level can be: debug info warn error
-func InitLog(level string, debug bool) {
-	logDir, err := filepath.Abs(viper.GetString("log.path"))
+	config := zap.NewProductionConfig()
+	err := config.Level.UnmarshalText([]byte(viper.GetString("log.level")))
 	FatalIfError(err)
-
-	InitLog2(level, StdOut + "," + logDir + "/runtime.log", 1, `{"filename":"runtime.log","MaxAge":7}`, debug)
-}
-
-// InitLog2 specify advanced log config
-func InitLog2(level string, outputs string, logRotationEnable int64, logRotateConfigJSON string, debug bool) {
-	outputPaths := strings.Split(outputs, ",")
-	for i, v := range outputPaths {
-		if logRotationEnable != 0 && v != StdErr && v != StdOut {
-			outputPaths[i] = fmt.Sprintf("lumberjack://%s", v)
+	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	if encoding := viper.GetString("encoding"); encoding != "" {
+		//默认json
+		config.Encoding = encoding
+		if encoding == "console" {
+			config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 		}
 	}
 
-	if logRotationEnable != 0 {
-		setupLogRotation(logRotateConfigJSON)
+	config.OutputPaths = viper.GetStringSlice("log.path")
+	if !strings.Contains(viper.GetString("runMode"), "prod") {
+		//development模式下DPanic直接panic
+		config.Development = true
 	}
 
-	config := loadConfig(level, debug)
-	config.OutputPaths = outputPaths
 	p, err := config.Build(zap.AddCallerSkip(1))
 	FatalIfError(err)
 
 	logger = p.Sugar()
 }
 
+// Logger logger interface
+type Logger interface {
+	Debug(args ...interface{})
+	Debugf(format string, args ...interface{})
+	Debugw(msg string, keysAndValues ...interface{})
 
-type lumberjackSink struct {
-	lumberjack.Logger
+	Info(args ...interface{})
+	Infof(format string, args ...interface{})
+	Infow(msg string, keysAndValues ...interface{})
+
+	Warn(args ...interface{})
+	Warnf(format string, args ...interface{})
+	Warnw(msg string, keysAndValues ...interface{})
+
+	Error(args ...interface{})
+	Errorf(format string, args ...interface{})
+	Errorw(msg string, keysAndValues ...interface{})
+
+	DPanic(args ...interface{})
+	DPanicf(format string, args ...interface{})
+	DPanicw(msg string, keysAndValues ...interface{})
+
+	Panic(v ...interface{})
+	Panicf(format string, args ...interface{})
+	Panicw(msg string, keysAndValues ...interface{})
+
+	Fatal(v ...interface{})
+	Fatalf(format string, args ...interface{})
+	Fatalw(msg string, keysAndValues ...interface{})
 }
 
-func (*lumberjackSink) Sync() error {
-	return nil
-}
-
-// setupLogRotation initializes log rotation for a single file path target.
-func setupLogRotation(logRotateConfigJSON string) {
-	err := zap.RegisterSink("lumberjack", func(u *url.URL) (zap.Sink, error) {
-		var conf lumberjackSink
-		err := json.Unmarshal([]byte(logRotateConfigJSON), &conf)
-		FatalfIf(err != nil, "bad config LogRotateConfigJSON: %v", err)
-		conf.Filename = u.Host + u.Path
-		return &conf, nil
-	})
-	FatalIfError(err)
-}
-
-func loadConfig(logLevel string, debug bool) zap.Config {
-	config := zap.NewProductionConfig()
-	err := config.Level.UnmarshalText([]byte(logLevel))
-	FatalIfError(err)
-	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	//if debug {
-	//	config.Encoding = "console"
-	//	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	//}
-	return config
+// Debug log to level debug
+func Debug(args ...interface{}) {
+	logger.Debug(args...)
 }
 
 // Debugf log to level debug
@@ -111,12 +86,14 @@ func Debugf(fmt string, args ...interface{}) {
 	logger.Debugf(fmt, args...)
 }
 
-func Info(args ...interface{}) {
-	logger.Info(args...)
+// Debugw log to level debug
+func Debugw(msg string, keysAndValues ...interface{}) {
+	logger.Debugw(msg, keysAndValues...)
 }
 
-func Infow(msg string, args ...interface{}) {
-	logger.Infow(msg, args...)
+// Info log to level info
+func Info(args ...interface{}) {
+	logger.Info(args...)
 }
 
 // Infof log to level info
@@ -124,15 +101,93 @@ func Infof(fmt string, args ...interface{}) {
 	logger.Infof(fmt, args...)
 }
 
+// Infow log to level info
+func Infow(msg string, keysAndValues ...interface{}) {
+	logger.Infow(msg, keysAndValues...)
+}
+
+// Warn log to level warn
+func Warn(args ...interface{}) {
+	logger.Warn(args...)
+}
+
 // Warnf log to level warn
 func Warnf(fmt string, args ...interface{}) {
 	logger.Warnf(fmt, args...)
+}
+
+// Warnw log to level warn
+func Warnw(msg string, keysAndValues ...interface{}) {
+	logger.Warnf(msg, keysAndValues...)
+}
+
+
+// Error log to level error
+func Error(args ...interface{}) {
+	logger.Error(args...)
 }
 
 // Errorf log to level error
 func Errorf(fmt string, args ...interface{}) {
 	logger.Errorf(fmt, args...)
 }
+
+// Errorw log to level error
+func Errorw(msg string, keysAndValues ...interface{}) {
+	logger.Errorw(msg, keysAndValues...)
+}
+
+// DPanic uses fmt.Sprint to construct and log a message. In development, the
+// logger then panics. (See DPanicLevel for details.)
+func DPanic(args ...interface{}) {
+	logger.DPanic(args...)
+}
+
+// DPanicf uses fmt.Sprintf to log a templated message. In development, the
+// logger then panics. (See DPanicLevel for details.)
+func DPanicf(fmt string, args ...interface{}) {
+	logger.DPanicf(fmt, args...)
+}
+
+// DPanicw logs a message with some additional context. In development, the
+// logger then panics. (See DPanicLevel for details.) The variadic key-value
+// pairs are treated as they are in With.
+func DPanicw(msg string, keysAndValues ...interface{}) {
+	logger.DPanicw(msg, keysAndValues...)
+}
+
+// Panic uses fmt.Sprint to construct and log a message, then panics.
+func Panic(args ...interface{}) {
+	logger.Panic(args...)
+}
+
+// Panicf uses fmt.Sprintf to log a templated message, then panics.
+func Panicf(fmt string, args ...interface{}) {
+	logger.Panicf(fmt, args...)
+}
+
+// Panicw logs a message with some additional context, then panics. The
+// variadic key-value pairs are treated as they are in With.
+func Panicw(msg string, keysAndValues ...interface{}) {
+	logger.Panicw(msg, keysAndValues...)
+}
+
+// Fatal uses fmt.Sprint to construct and log a message, then panics.
+func Fatal(args ...interface{}) {
+	logger.Fatal(args...)
+}
+
+// Fatalf uses fmt.Sprintf to log a templated message, then panics.
+func Fatalf(format string, args ...interface{}) {
+	logger.Fatalf(format, args...)
+}
+
+// Fatalw logs a message with some additional context, then panics. The
+// variadic key-value pairs are treated as they are in With.
+func Fatalw(msg string, keysAndValues ...interface{}) {
+	logger.Fatalw(msg, keysAndValues...)
+}
+
 
 // FatalfIf log to level error
 func FatalfIf(cond bool, fmt string, args ...interface{}) {

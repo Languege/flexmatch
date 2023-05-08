@@ -6,17 +6,7 @@ package entities
 import (
 	"github.com/Languege/flexmatch/service/match/proto/open"
 )
-//
-//type Team struct {
-//	//团队名
-//	Name string
-//
-//	//期望玩家数
-//	ExpectPlayerNum int
-//
-//	//票据
-//	Tickets []*open.MatchmakingTicket
-//}
+
 type Team open.MatchTeam
 
 func newTeam(conf *open.MatchmakingTeamConfiguration) *Team {

@@ -4,6 +4,7 @@
 package entities
 
 import (
+	_ "github.com/Languege/flexmatch/service/match/conf"
 	"github.com/Languege/flexmatch/service/match/proto/open"
 	"github.com/google/uuid"
 	"github.com/juju/errors"
@@ -12,6 +13,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"log"
+	"encoding/json"
+	"github.com/golang/protobuf/proto"
 )
 
 func defaultConf() *open.MatchmakingConfiguration {
@@ -71,16 +74,16 @@ func newTicket() *open.MatchmakingTicket {
 }
 
 func TestMatchmaking_TicketInput(t *testing.T) {
-	conf := defaultConf()
+	config := defaultConf()
 	//conf.AcceptanceRequired = false
-	matchmaking := NewMatchmaking(conf)
+	matchmaking := NewMatchmaking(config)
 
 	wg := &sync.WaitGroup{}
 	matchmaking.eventSubs.Register(func(topic string, ev *open.MatchEvent) {
 		switch ev.MatchEventType {
 		case open.MatchEventType_PotentialMatchCreated:
 			go func() {
-				wg.Done()
+				defer wg.Done()
 				if ev.AcceptanceRequired {
 					//循环接收对局
 					for _, ticket := range ev.Tickets {
@@ -236,4 +239,26 @@ func TestMatchmaking_BackfillMode(t *testing.T) {
 	}
 
 	time.Sleep(time.Hour)
+}
+
+func TestUnmarshalText(t *testing.T) {
+	data := `{"level":"info","ts":"2023-05-08T11:04:56.773+0800","caller":"entities/match_event.go:59","msg":"AcceptMatch","topic":"MatchEventQueueTopic","evEncodeType":"protobuf/text","ev":"MatchEventType:AcceptMatch Tickets:<TicketId:\"6e8fc4f4-c505-4945-8736-871c066e4e0d\" StartTime:1683515094 Players:<UserId:1749456534 Accepted:true Attributes:<Name:\"score\" Type:\"float64\" Value:\"1200\" > > Status:\"REQUIRES_ACCEPTANCE\" EstimatedWaitTime:5 MatchId:\"d5fdf16a-680a-4417-b239-be3e8c6cae98\" PotentialMatchCostSeconds:1 > Tickets:<TicketId:\"360f38ff-5250-44a4-8b34-fe86bbc56f6f\" StartTime:1683515094 Players:<UserId:1407855914 Accepted:true Attributes:<Name:\"score\" Type:\"float64\" Value:\"1200\" > > Status:\"REQUIRES_ACCEPTANCE\" EstimatedWaitTime:5 MatchId:\"d5fdf16a-680a-4417-b239-be3e8c6cae98\" PotentialMatchCostSeconds:1 > Tickets:<TicketId:\"0a3d2727-7743-49ad-9904-7aa0c48257bc\" StartTime:1683515094 Players:<UserId:1133366110 Accepted:true Attributes:<Name:\"score\" Type:\"float64\" Value:\"1200\" > > Status:\"REQUIRES_ACCEPTANCE\" EstimatedWaitTime:5 MatchId:\"d5fdf16a-680a-4417-b239-be3e8c6cae98\" PotentialMatchCostSeconds:1 > Tickets:<TicketId:\"3769b665-0224-41ec-8b45-7a82f6e89652\" StartTime:1683515094 Players:<UserId:3788760502 Accepted:true Attributes:<Name:\"score\" Type:\"float64\" Value:\"1200\" > > Status:\"REQUIRES_ACCEPTANCE\" EstimatedWaitTime:5 MatchId:\"d5fdf16a-680a-4417-b239-be3e8c6cae98\" PotentialMatchCostSeconds:1 > Tickets:<TicketId:\"55e8efa1-6189-4ee5-9ea4-95d9ac0791ec\" StartTime:1683515094 Players:<UserId:1013917179 Accepted:true Attributes:<Name:\"score\" Type:\"float64\" Value:\"1200\" > > Status:\"REQUIRES_ACCEPTANCE\" EstimatedWaitTime:5 MatchId:\"d5fdf16a-680a-4417-b239-be3e8c6cae98\" PotentialMatchCostSeconds:1 > Tickets:<TicketId:\"2c6c7dad-dc70-4831-b561-d67b1e6bd7e5\" StartTime:1683515094 Players:<UserId:4021532018 Accepted:true Attributes:<Name:\"score\" Type:\"float64\" Value:\"1200\" > > Status:\"REQUIRES_ACCEPTANCE\" EstimatedWaitTime:5 MatchId:\"d5fdf16a-680a-4417-b239-be3e8c6cae98\" PotentialMatchCostSeconds:1 > Tickets:<TicketId:\"65b4deb5-6a36-48b4-abe7-33ab3a2dc354\" StartTime:1683515094 Players:<UserId:359957355 Accepted:true Attributes:<Name:\"score\" Type:\"float64\" Value:\"1200\" > > Status:\"REQUIRES_ACCEPTANCE\" EstimatedWaitTime:5 MatchId:\"d5fdf16a-680a-4417-b239-be3e8c6cae98\" PotentialMatchCostSeconds:1 > Tickets:<TicketId:\"89267893-3687-4f8e-af53-25854841e22e\" StartTime:1683515094 Players:<UserId:1109547558 Accepted:true Attributes:<Name:\"score\" Type:\"float64\" Value:\"1200\" > > Status:\"REQUIRES_ACCEPTANCE\" EstimatedWaitTime:5 MatchId:\"d5fdf16a-680a-4417-b239-be3e8c6cae98\" PotentialMatchCostSeconds:1 > Tickets:<TicketId:\"d5d9a858-6ecd-485b-a8ba-15275093c6c8\" StartTime:1683515094 Players:<UserId:995661753 Accepted:true Attributes:<Name:\"score\" Type:\"float64\" Value:\"1200\" > > Status:\"REQUIRES_ACCEPTANCE\" EstimatedWaitTime:5 MatchId:\"d5fdf16a-680a-4417-b239-be3e8c6cae98\" PotentialMatchCostSeconds:1 > MatchId:\"d5fdf16a-680a-4417-b239-be3e8c6cae98\" "}`
+	m := map[string]interface{}{}
+	err := json.Unmarshal([]byte(data), &m)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	evData := m["ev"].(string)
+	ev := &open.MatchEvent{}
+	err = proto.UnmarshalText(evData, ev)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	jsonData, err := json.Marshal(ev)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(string(jsonData))
 }

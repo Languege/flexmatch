@@ -143,12 +143,12 @@ func (rs *MatchmakingRuleSetWrapper) CheckTeams() (err error) {
 //CheckRuleTeam 验证Team定义
 func (rs *MatchmakingRuleSetWrapper) CheckTeam(team *open.MatchmakingTeamConfiguration) (err error) {
 	if team.Name == "" {
-		err = fmt.Errorf("RuleSet.Teams[%s].Name cannot be empty", team.Name)
+		err = errors.Trace(fmt.Errorf("RuleSet.Teams[%s].Name cannot be empty", team.Name))
 		return
 	}
 
 	if team.PlayerNumber <= 0 {
-		err = fmt.Errorf("RuleSet.Teams[%s].PlayerNumber must be greater than 1", team.Name)
+		err = errors.Trace(fmt.Errorf("RuleSet.Teams[%s].PlayerNumber must be greater than 1", team.Name))
 		return
 	}
 
@@ -200,28 +200,7 @@ func (rs *MatchmakingRuleSetWrapper) CheckRule(rule *open.MatchmakingRule) (err 
 			return
 		}
 
-		//Measurements表达式验证
-		//if err = rs.checkPropertyExpression(rule.Measurements); err != nil {
-		//	err = errors.Trace(err)
-		//	return
-		//}
-
-		//if rule.ReferenceValue != "" {
-		//	if err = rs.checkPropertyExpression(rule.ReferenceValue); err != nil {
-		//		return
-		//	}
-		//}
 	case open.MatchmakingRuleType_MatchmakingRuleType_Distance:
-		//距离规则验证（参考值和测量值的距离）
-		//Measurements表达式验证
-		//if err = rs.checkPropertyExpression(rule.Measurements); err != nil {
-		//	return
-		//}
-
-		//if err = rs.checkPropertyExpression(rule.ReferenceValue); err != nil {
-		//	return
-		//}
-
 		//最大距离
 		if rule.MaxDistance <= 0 {
 			err = fmt.Errorf("RuleSet.Rules[%s].MaxDistance is less than 0", rule.Name)
@@ -229,108 +208,43 @@ func (rs *MatchmakingRuleSetWrapper) CheckRule(rule *open.MatchmakingRule) (err 
 		}
 	case open.MatchmakingRuleType_MatchmakingRuleType_Collection:
 		//集合规则（未实现）
-		err = fmt.Errorf("RuleSet.Rules[%s].Type %s is not implemented", rule.Name, rule.Type.String())
+		err = errors.Trace(fmt.Errorf("RuleSet.Rules[%s].Type %s is not implemented", rule.Name, rule.Type.String()))
 		return
 	case open.MatchmakingRuleType_MatchmakingRuleType_BatchDistance:
 		//批次距离规则 (玩家属性之间的距离)
 		//batchAttribute属性是否存在玩家属性中
 		_, ok := rs.playerAttributeMap[rule.BatchAttribute]
 		if !ok {
-			err = fmt.Errorf("RuleSet.Rules[%s].BatchAttribute %s is not defined previously in RuleSet.PlayerAttributes", rule.Name, rule.Type.String())
+			err = errors.Trace(fmt.Errorf("RuleSet.Rules[%s].BatchAttribute %s is not defined previously in RuleSet.PlayerAttributes", rule.Name, rule.Type.String()))
 			return
 		}
 
 		//最大距离
 		if rule.MaxDistance <= 0 {
-			err = fmt.Errorf("RuleSet.Rules[%s].MaxDistance is less than 0", rule.Name)
+			err = errors.Trace(fmt.Errorf("RuleSet.Rules[%s].MaxDistance is less than 0", rule.Name))
 			return
 		}
 	//以下两个均为排序规则 属性值排序,相对于票据批次中第一个票据的属性值差
 	case open.MatchmakingRuleType_MatchmakingRuleType_AbsoluteSort, open.MatchmakingRuleType_MatchmakingRuleType_DistanceSort:
 		//升序降序排列
 		if (rule.SortDirection == open.SortDirectionType_Ascending || rule.SortDirection == open.SortDirectionType_Descending) == false {
-			err = fmt.Errorf("RuleSet.Rules[%s].SortDirection %s is invalid", rule.Name, rule.SortDirection.String())
+			err = errors.Trace(fmt.Errorf("RuleSet.Rules[%s].SortDirection %s is invalid", rule.Name, rule.SortDirection.String()))
 			return
 		}
 
 		//排序属性
 		_, ok := rs.playerAttributeMap[rule.SortAttribute]
 		if !ok {
-			err = fmt.Errorf("RuleSet.Rules[%s].SortAttribute %s is not defined previously in RuleSet.PlayerAttributes", rule.Name, rule.Type.String())
+			err = errors.Trace(fmt.Errorf("RuleSet.Rules[%s].SortAttribute %s is not defined previously in RuleSet.PlayerAttributes", rule.Name, rule.Type.String()))
 			return
 		}
 	default:
-		err = fmt.Errorf("RuleSet.Rules[%s].Type %s is not supported", rule.Name, rule.Type.String())
+		err = errors.Trace(fmt.Errorf("RuleSet.Rules[%s].Type %s is not supported", rule.Name, rule.Type.String()))
 		return
 	}
 
 	return
 }
-
-//检测属性表达式
-//func (rs *MatchmakingRuleSetWrapper) checkPropertyExpression(expression *open.MatchmakingRule_PropertyExpression) (err error) {
-//	//数值
-//	if expression.TargetType == "value" {
-//		return
-//	}
-//
-//	//聚合函数判断
-//	if (expression.AggregationFunction == "flatten" || expression.AggregationFunction == "avg" ||
-//		expression.AggregationFunction == "min" || expression.AggregationFunction == "max") == false {
-//		err = errors.Trace(fmt.Errorf("PropertyExpression AggregationFunction %s is not supported", expression.AggregationFunction))
-//		return
-//	}
-//
-//	//验证团队
-//	if expression.TeamNames != "" {
-//		if expression.TeamNames == "*" {
-//			//匹配所有团队
-//		} else {
-//			//逗号分割每个团队
-//			for _, name := range strings.Split(expression.TeamNames, ",") {
-//				//团队存在行判断
-//				_, ok := rs.teamMap[name]
-//				if !ok {
-//					err = errors.Trace(fmt.Errorf("PropertyExpression Team.Name %s is not defined previously", name))
-//					return
-//				}
-//			}
-//		}
-//	}
-//
-//	//表达式终止目标类型
-//	if expression.TargetType == "team" {
-//		return
-//	}
-//
-//	//验证团队
-//	if expression.TeamNames != "" {
-//		if expression.TeamNames == "*" {
-//			//匹配所有团队
-//		} else {
-//			//逗号分割每个团队
-//			for _, name := range strings.Split(expression.TeamNames, ",") {
-//				//团队存在行判断
-//				_, ok := rs.teamMap[name]
-//				if !ok {
-//					err = errors.Trace(fmt.Errorf("PropertyExpression Team.Name %s is not defined previously in RuleSet.Teams", name))
-//					return
-//				}
-//			}
-//		}
-//	}
-//
-//	//验证玩家属性
-//	if expression.TargetType == "attribute" {
-//		_, ok := rs.playerAttributeMap[expression.Attribute]
-//		if !ok {
-//			err = errors.Trace(fmt.Errorf("PropertyExpression Attribute %s is not defined previously in RuleSet.PlayerAttributes", expression.Attribute))
-//			return
-//		}
-//	}
-//
-//	return
-//}
 
 //CheckExpansionRules 验证扩展规则列表
 func (rs *MatchmakingRuleSetWrapper) CheckExpansionRules() (err error) {
@@ -353,7 +267,7 @@ func (rs *MatchmakingRuleSetWrapper) CheckExpansionRule(ep *open.MatchmakingExpa
 		//验证规则名是否存在
 		rule, ok := rs.ruleMap[ep.Target.ComponentName]
 		if !ok {
-			err = fmt.Errorf("ExpansionRule.Target.ComponentName %s not defined previously in RuleSet.Rules", ep.Target.ComponentName)
+			err = errors.Trace(fmt.Errorf("ExpansionRule.Target.ComponentName %s not defined previously in RuleSet.Rules", ep.Target.ComponentName))
 			return
 		}
 
@@ -361,15 +275,15 @@ func (rs *MatchmakingRuleSetWrapper) CheckExpansionRule(ep *open.MatchmakingExpa
 		ruleRv := reflect.ValueOf(rule).Elem()
 		_, fieldOk := ruleRv.Type().FieldByName(ep.Target.Attribute)
 		if !fieldOk {
-			err = fmt.Errorf("ExpansionRule.Target.Attribute %s not defined previously in RuleSet.Rules[%s]",
-				ep.Target.Attribute, ep.Target.ComponentName)
+			err =  errors.Trace(fmt.Errorf("ExpansionRule.Target.Attribute %s not defined previously in RuleSet.Rules[%s]",
+				ep.Target.Attribute, ep.Target.ComponentName))
 			return
 		}
 	case open.ComponentType_ComponentType_Teams:
 		//验证规则名是否存在
 		team, ok := rs.teamMap[ep.Target.ComponentName]
 		if !ok {
-			err = fmt.Errorf("ExpansionRule.Target.ComponentName %s not defined previously in RuleSet.Rules", ep.Target.ComponentName)
+			err = errors.Trace(fmt.Errorf("ExpansionRule.Target.ComponentName %s not defined previously in RuleSet.Rules", ep.Target.ComponentName))
 			return
 		}
 
@@ -377,12 +291,12 @@ func (rs *MatchmakingRuleSetWrapper) CheckExpansionRule(ep *open.MatchmakingExpa
 		ruleRv := reflect.ValueOf(team).Elem()
 		_, fieldOk := ruleRv.Type().FieldByName(ep.Target.Attribute)
 		if !fieldOk {
-			err = fmt.Errorf("ExpansionRule.Target.Attribute %s not defined previously in RuleSet.Teams[%s]",
-				ep.Target.Attribute, ep.Target.ComponentName)
+			err = errors.Trace(fmt.Errorf("ExpansionRule.Target.Attribute %s not defined previously in RuleSet.Teams[%s]",
+				ep.Target.Attribute, ep.Target.ComponentName))
 			return
 		}
 	default:
-		err = fmt.Errorf("ExpansionRule.Target.ComponentType %s not supported", ep.Target.ComponentType)
+		err = errors.Trace(fmt.Errorf("ExpansionRule.Target.ComponentType %s not supported", ep.Target.ComponentType))
 		return
 	}
 

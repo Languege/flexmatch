@@ -12,6 +12,7 @@ import (
 	"net"
 	"github.com/Languege/flexmatch/service/match/entities"
 	"github.com/Languege/flexmatch/service/match/event_subscribers"
+	"github.com/Languege/flexmatch/service/match/logger"
 )
 
 var(
@@ -25,7 +26,7 @@ func init() {
 
 
 func main() {
-	log.Println("BuildVersion", BuildVersion, "BuildDate", BuildDate)
+	logger.Debugw("", "BuildVersion", BuildVersion, "BuildDate", BuildDate)
 
 	address := fmt.Sprintf("%s:%d", viper.GetString("rpc.host"), viper.GetInt("rpc.port"))
 	lis, err := net.Listen("tcp", address)

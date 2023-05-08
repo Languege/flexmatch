@@ -199,7 +199,7 @@ func (rep *MatchmakingRepository) CheckConfiguration(conf *open.MatchmakingConfi
 		}
 	}
 
-	//至少存在一个team, 且成员数大于等于1
+	//规则集非空
 	if conf.RuleSet == nil {
 		sgErr = sgerrors.NewSGError(open.ResultCode_ParamInvalid, "RuleSet cannot be empty")
 		return
@@ -208,7 +208,7 @@ func (rep *MatchmakingRepository) CheckConfiguration(conf *open.MatchmakingConfi
 	//验证规则集
 	err := entities.NewMatchmakingRuleSetWrapper(conf.RuleSet).CheckParams()
 	if err != nil {
-		sgErr = sgerrors.NewSGError(open.ResultCode_ParamInvalid, err.Error())
+		sgErr = sgerrors.NewSGError(open.ResultCode_ParamInvalid, errors.ErrorStack(err))
 		return
 	}
 

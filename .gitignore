@@ -2,4 +2,6 @@
 vendor
 service/match/match
 
-service/match/logs/*
+service/match/*/*.log
+*.log
+examples/*

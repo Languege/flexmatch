@@ -18,10 +18,6 @@ var(
  *2020/2/15 11:03 PM
  **/
 func init()  {
-	//修改flag的默认行为
-	flag.Func("config", "yaml配置文件路径", func(s string) error {
-		return nil
-	})
 	flagSet.StringVar(&configFile, "config", "", "yaml配置文件路径")
 	flagSet.Parse(os.Args[1:])
 	if configFile != "" {

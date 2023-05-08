@@ -7,7 +7,6 @@ import (
 	"github.com/Languege/flexmatch/service/match/proto/open"
 	"github.com/Languege/flexmatch/service/match/logger"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 //初始订阅设置
@@ -46,23 +45,9 @@ func(m *matchEventSubscribeManager) MatchEventInput(ev *open.MatchEvent) {
 	}
 }
 
-type matchEventMarshal struct {
-	open.MatchEvent
-}
-
-func newMatchEventMarshal(ev *open.MatchEvent) *matchEventMarshal {
-	return &matchEventMarshal{
-		MatchEvent:*ev,
-	}
-}
-
-func(m *matchEventMarshal) MarshalLogObject(enc zapcore.ObjectEncoder) error {
-	enc.AddInt64("AcceptanceTimeout", m.AcceptanceTimeout)
-
-	return nil
-}
 
 func matchEventPrint(topic string, ev *open.MatchEvent) {
-	logger.Infow("", zap.String("topic", topic), zap.String("MatchEventType", ev.MatchEventType.String()),
-		zap.Object("ev", newMatchEventMarshal(ev)))
+	logger.Infow(ev.MatchEventType.String(), zap.String("topic", topic),
+		zap.String("evEncodeType", "protobuf/text"),
+		zap.String("ev", ev.String()))
 }
