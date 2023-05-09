@@ -7,4 +7,4 @@ echo "COMMIT_HASH:"${COMMIT_HASH}",COMMIT_DATE:"${COMMIT_DATE}
 
 
 go build -o=match -mod vendor -ldflags "-X \"main.BuildVersion=${COMMIT_HASH}\" -X \"main.BuildDate=${COMMIT_DATE}\" " main.go
-./match -config ./conf/main-local.yaml
+./match -config ./conf/main.yaml

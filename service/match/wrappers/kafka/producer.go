@@ -11,7 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"github.com/Languege/flexmatch/service/match/logger"
+	"github.com/Languege/flexmatch/common/logger"
 	"strings"
 	"github.com/rcrowley/go-metrics"
 )

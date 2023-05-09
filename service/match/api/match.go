@@ -4,12 +4,14 @@
 package match_api
 
 import (
+	resolver_etcd "github.com/Languege/flexmatch/common/grpc_middleware/resolver/etcd"
+	common_constants "github.com/Languege/flexmatch/common/constants"
 	"google.golang.org/grpc"
 	"context"
 	"github.com/Languege/flexmatch/service/match/proto/open"
 	"log"
-	"fmt"
 	"github.com/spf13/viper"
+	"github.com/Languege/flexmatch/common/grpc_middleware"
 )
 
 var(
@@ -25,8 +27,8 @@ func init() {
 }
 
 func newMatchClient() (open.FlexMatchClient,error) {
-	addr := fmt.Sprintf("127.0.0.1:%d", viper.GetInt("rpc.port"))
-	conn, err := grpc.DialContext(context.TODO(), addr)
+	target := resolver_etcd.BuildTarget(viper.GetStringSlice("etcd.addrs"), common_constants.ServiceEndpoint_Match)
+	conn, err := grpc.DialContext(context.TODO(), target, grpc_middleware.ClientOptions()...)
 	if err != nil {
 		return nil, err
 	}

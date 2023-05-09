@@ -7,6 +7,10 @@ import (
 	"google.golang.org/grpc"
 	"context"
 	"github.com/Languege/flexmatch/service/match/proto/open"
+	resolver_etcd "github.com/Languege/flexmatch/common/grpc_middleware/resolver/etcd"
+	"github.com/spf13/viper"
+	common_constants "github.com/Languege/flexmatch/common/constants"
+	"github.com/Languege/flexmatch/common/grpc_middleware"
 )
 
 
@@ -23,7 +27,8 @@ func init() {
 }
 
 func newMatchGameClient() (open.FlexMatchGameClient,error) {
-	conn, err := grpc.DialContext(context.TODO(), "127.0.0.1:10007")
+	target := resolver_etcd.BuildTarget(viper.GetStringSlice("etcd.addrs"), common_constants.ServiceEndpoint_Battle)
+	conn, err := grpc.DialContext(context.TODO(), target, grpc_middleware.ClientOptions()...)
 	if err != nil {
 		return nil, err
 	}

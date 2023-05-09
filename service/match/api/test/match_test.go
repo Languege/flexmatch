@@ -5,6 +5,7 @@ package test
 
 import (
 	_ "github.com/Languege/flexmatch/service/match/conf"
+	_ "github.com/Languege/flexmatch/common/bootstraps"
 	"context"
 	"github.com/Languege/flexmatch/service/match/proto/open"
 	match_api "github.com/Languege/flexmatch/service/match/api"

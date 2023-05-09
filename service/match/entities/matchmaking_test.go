@@ -15,7 +15,12 @@ import (
 	"log"
 	"encoding/json"
 	"github.com/golang/protobuf/proto"
+	"github.com/Languege/flexmatch/common/bootstraps"
 )
+
+func init() {
+	bootstraps.InitLogger()
+}
 
 func defaultConf() *open.MatchmakingConfiguration {
 	conf := &open.MatchmakingConfiguration{

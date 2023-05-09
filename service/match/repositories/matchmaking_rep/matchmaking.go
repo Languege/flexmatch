@@ -16,8 +16,8 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"github.com/Languege/flexmatch/service/match/logger"
-	etcd_wrapper "github.com/Languege/flexmatch/service/match/wrappers/etcd"
+	"github.com/Languege/flexmatch/common/logger"
+	single_etcd "github.com/Languege/flexmatch/common/singletons/etcd"
 )
 
 const (
@@ -61,7 +61,7 @@ type MatchmakingRepository struct {
 func NewMatchmakingRepository(opts ...Option) *MatchmakingRepository {
 	rep := &MatchmakingRepository{
 		m:           map[string]*entities.Matchmaking{},
-		etcdClient:  etcd_wrapper.GlobalClient,
+		etcdClient:  single_etcd.EtcdClient,
 		confPath:    default_ConfPath,
 		memoryStore: map[string]*open.MatchmakingTicket{},
 		storeGuard:  &sync.RWMutex{},

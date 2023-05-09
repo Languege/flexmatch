@@ -2,6 +2,8 @@ package main
 
 import (
 	_ "github.com/Languege/flexmatch/service/match/conf"
+	_ "github.com/Languege/flexmatch/common/bootstraps"
+
 	"fmt"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
@@ -12,7 +14,9 @@ import (
 	"net"
 	"github.com/Languege/flexmatch/service/match/entities"
 	"github.com/Languege/flexmatch/service/match/event_subscribers"
-	"github.com/Languege/flexmatch/service/match/logger"
+	"github.com/Languege/flexmatch/common/logger"
+
+	"github.com/Languege/flexmatch/common/bootstraps"
 )
 
 var(
@@ -21,6 +25,8 @@ var(
 )
 
 func init() {
+	//服务发布
+	bootstraps.PublishService(viper.GetString("rpc.service"), viper.GetInt("rpc.port"))
 	entities.RegisterSubscribe(event_subscribers.KafkaMatchEventSubscribe)
 }
 

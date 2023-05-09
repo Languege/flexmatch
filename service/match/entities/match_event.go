@@ -5,7 +5,7 @@ package entities
 
 import (
 	"github.com/Languege/flexmatch/service/match/proto/open"
-	"github.com/Languege/flexmatch/service/match/logger"
+	"github.com/Languege/flexmatch/common/logger"
 	"go.uber.org/zap"
 )
 

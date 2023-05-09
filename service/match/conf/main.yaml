@@ -1,21 +1,21 @@
 port: 8007
-project: gourmetship
-service: gourmetship.match
+project: open
+service: open.match
 # etcd配置
 etcd:
-  addr: ["10.10.10.16:3379"]
+  addrs: ["10.10.10.16:3379"]
 
 runMode: dev
 
 rpc:
   port: 10007
-  service: gourmetship.match.rpc
+  service: open.match.rpc
   logrus:
     level: "info"   #日志等级
     debug: true #是否输出到控制台
   timeout: 5s
   endpoints:
-    matchgame: gourmetship.cellmesh.battle
+    matchgame: open.cellmesh.battle
 
 # kafka配置
 kafka:

@@ -1,17 +1,15 @@
 // etcd
-// @author LanguageY++2013 2023/5/6 15:44
+// @author LanguageY++2013 2023/5/8 21:10
 // @company soulgame
-package etcd_wrapper
+package etcd
 
 import (
 	"github.com/coreos/etcd/clientv3"
 	"time"
-	"github.com/spf13/viper"
-	"log"
 )
 
-var(
-	GlobalClient *clientv3.Client
+const (
+	defaultMaxCallSendMsgSize = 16 * 1024 * 1024
 )
 
 type Option func(c *clientv3.Config)
@@ -34,7 +32,7 @@ func NewClient(addr []string, options... Option)(client *clientv3.Client, err er
 	conf := clientv3.Config{
 		Endpoints:   addr,
 		DialTimeout: 5 * time.Second,
-		MaxCallSendMsgSize: 16 * 1024 * 1024,
+		MaxCallSendMsgSize: defaultMaxCallSendMsgSize,
 	}
 
 	if len(options) > 0 {
@@ -46,25 +44,4 @@ func NewClient(addr []string, options... Option)(client *clientv3.Client, err er
 	client, err = clientv3.New(conf)
 	return
 }
-
-
-func init() {
-	//初始化全局客户端
-	addr := viper.GetStringSlice("etcd.addr")
-	if len(addr) == 0 {
-		log.Panicln("etcd.addr can not empty")
-	}
-
-	var err error
-	options := []Option{}
-	if viper.GetString("etcd.username") != "" {
-		options = append(options, WithAuth(viper.GetString("etcd.username"), viper.GetString("etcd.password")))
-	}
-	GlobalClient, err = NewClient(addr,  options...)
-	if err != nil {
-		log.Panicln(err)
-	}
-}
-
-
 
