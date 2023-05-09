@@ -10,7 +10,7 @@ import (
 
 func InitLogger() {
 	cfg := logger.LoggerConfig{}
-	err := viper.UnmarshalKey("log", &cfg)
-	logger.FatalfIf(err != nil, "viper unmarshal 'log' err %v", err)
+	err := viper.UnmarshalKey("log.default", &cfg)
+	logger.FatalfIf(err != nil, "viper unmarshal 'log.default' err %v", err)
 	logger.LoadConfig(cfg)
 }

@@ -17,6 +17,7 @@ import (
 	"github.com/Languege/flexmatch/common/logger"
 
 	"github.com/Languege/flexmatch/common/bootstraps"
+	"github.com/Languege/flexmatch/common/grpc_middleware"
 )
 
 var(
@@ -40,7 +41,7 @@ func main() {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	s := grpc.NewServer()
+	s := grpc.NewServer(grpc_middleware.ServerOptions()...)
 
 	open.RegisterFlexMatchServer(s, service.NewMatchServerImpl())
 

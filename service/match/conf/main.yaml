@@ -24,10 +24,15 @@ kafka:
   prefix: local_
 
 log:
-  path:
-    - lumberjack://./logs/runtime.log
-    - stdout
-  level: debug
+  default:
+    paths:
+      - lumberjack://./logs/runtime.log
+      - stdout
+    level: debug
+  rpc:
+    paths:
+      - lumberjack://./logs/rpc.log
+      - stdout
 
 stat:
   port: 7007

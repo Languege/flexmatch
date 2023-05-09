@@ -8,7 +8,6 @@ import (
 	"go.uber.org/zap"
 	"log"
 	"go.uber.org/zap/zapcore"
-	"github.com/spf13/viper"
 )
 
 
@@ -23,28 +22,33 @@ type LoggerConfig struct {
 	Development bool     `mapstructure:"development"`
 }
 
-//日志初始化
-func LoadConfig(cfg LoggerConfig) {
-	RegisterSinkLumberjackSink()
-	
+func NewZapLogger(cfg LoggerConfig) (*zap.Logger, error) {
 	config := zap.NewProductionConfig()
 	err := config.Level.UnmarshalText([]byte(cfg.Level))
-	FatalIfError(err)
-	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	if cfg.Encoding != "" {
-		//默认json
-		config.Encoding = cfg.Encoding
-		if cfg.Encoding == "console" {
-			config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-		}
+	if err != nil {
+		return nil, err
 	}
 
-	config.OutputPaths = viper.GetStringSlice("log.path")
+	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	config.OutputPaths = cfg.Paths
 	//development模式下DPanic直接panic
 	config.Development = cfg.Development
 
 
 	p, err := config.Build(zap.AddCallerSkip(1))
+	if err != nil {
+		return nil, err
+	}
+
+	return p, nil
+}
+
+//日志初始化
+func LoadConfig(cfg LoggerConfig) {
+	RegisterSinkLumberjackSink()
+
+	p, err := NewZapLogger(cfg)
 	FatalIfError(err)
 
 	logger = p.Sugar()

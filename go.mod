@@ -11,6 +11,7 @@ require (
 	github.com/eapache/queue v1.1.0 // indirect
 	github.com/golang/protobuf v1.5.3
 	github.com/google/uuid v1.3.0
+	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0
 	github.com/juju/errors v0.0.0-20200330140219-3fe23663418f
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
@@ -19,4 +20,5 @@ require (
 	go.uber.org/atomic v1.7.0
 	go.uber.org/zap v1.21.0
 	google.golang.org/grpc v1.26.0
+	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
