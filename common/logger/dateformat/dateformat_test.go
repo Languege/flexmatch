@@ -18,6 +18,26 @@ func TestLogger_Write(t *testing.T) {
 	logger.Write([]byte(strings.Repeat("s", 1024 * 10) + "\n"))
 	//1KB大小
 	logger.Write([]byte(strings.Repeat("s", 1024) + "\n"))
+
+	logger.mill()
+
+	time.Sleep(time.Second * 5)
+}
+
+func TestLogger_MaxAge(t *testing.T) {
+	logger := NewLogger(Configure{
+		Dir: "./logs",
+		MaxAge: 1,
+	})
+
+	//10KB大小
+	logger.Write([]byte(strings.Repeat("s", 1024 * 10) + "\n"))
+	//1KB大小
+	logger.Write([]byte(strings.Repeat("s", 1024) + "\n"))
+
+	logger.mill()
+
+	time.Sleep(time.Second * 5)
 }
 
 func TestNewBufferedWriteSyncer(t *testing.T) {

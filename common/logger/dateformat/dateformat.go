@@ -8,10 +8,15 @@ import (
 	"os"
 	"sync"
 	"time"
+	"strings"
+	"errors"
+	"sort"
+	"path/filepath"
+	"log"
 )
 
 const (
-	cacheUnit = 1024
+	timeFormat = "2006010215"
 )
 
 type Configure struct {
@@ -31,8 +36,8 @@ type Logger struct {
 	file *os.File
 	mu   sync.Mutex
 
-	cache 	[]byte
-	free int
+	millCh    chan bool
+	startMill sync.Once
 }
 
 func NewLogger(cfg Configure) *Logger {
@@ -81,6 +86,8 @@ func(l *Logger) close() error {
 }
 
 func (l *Logger) openExistingOrNew() (err error) {
+	l.mill()
+
 	filename := l.filename()
 	_, err = os.Stat(filename)
 	if os.IsNotExist(err) {
@@ -104,7 +111,7 @@ func (l *Logger) openExistingOrNew() (err error) {
 }
 
 func (l *Logger) filename() string {
-	dateformat := time.Now().Format("2006010215")
+	dateformat := time.Now().Format(timeFormat)
 	if l.Prefix == "" {
 		return fmt.Sprintf("%s/%s.log", l.Dir, dateformat)
 	}
@@ -126,4 +133,118 @@ func (l *Logger) openNew() error {
 
 	l.file = file
 	return nil
+}
+
+//发送旧日志的移除的信号，首次触发时创建信息接收处理协程
+func (l *Logger) mill() {
+	l.startMill.Do(func() {
+		l.millCh = make(chan bool, 1)
+		go l.millRun()
+	})
+	select {
+	case l.millCh <- true:
+	default:
+	}
+}
+
+func (l *Logger) millRun() {
+	for  range l.millCh {
+		err := l.millRunOnce()
+		if err != nil {
+			log.Printf("mill run once err %s\n", err)
+		}
+	}
+}
+
+//旧日志移除处理
+func (l *Logger) millRunOnce() error {
+	files, err := l.oldLogFiles()
+	if err != nil {
+		return err
+	}
+	var remove []logInfo
+	if l.MaxAge > 0 {
+		diff := time.Duration(int64(24*time.Hour) * int64(l.MaxAge))
+		cutoff := time.Now().Add(-1 * diff)
+
+		for _, f := range files {
+			if f.timestamp.Before(cutoff) {
+				remove = append(remove, f)
+			}
+		}
+	}
+
+	for _, f := range remove {
+		errRemove := os.Remove(filepath.Join(l.Dir, f.Name()))
+		if err == nil && errRemove != nil {
+			err = errRemove
+		}
+	}
+
+	return err
+}
+
+func (l *Logger) oldLogFiles() ([]logInfo, error) {
+	files, err := os.ReadDir(l.Dir)
+	if err != nil {
+		return nil, fmt.Errorf("can't read log file directory: %s", err)
+	}
+	logFiles := []logInfo{}
+
+	prefix := ""
+	if l.Prefix != "" {
+		prefix = l.Prefix + "-"
+	}
+	ext := ".log"
+
+	for _, f := range files {
+		if f.IsDir() {
+			continue
+		}
+		if t, err := l.timeFromName(f.Name(), prefix, ext); err == nil {
+			logFiles = append(logFiles, logInfo{t, f})
+			continue
+		}
+	}
+
+	sort.Sort(byFormatTime(logFiles))
+
+	return logFiles, nil
+}
+
+func (l *Logger) timeFromName(filename, prefix, ext string) (time.Time, error) {
+	if  prefix != "" && !strings.HasPrefix(filename, prefix) {
+		return time.Time{}, errors.New("mismatched prefix")
+	}
+	if !strings.HasSuffix(filename, ext) {
+		return time.Time{}, errors.New("mismatched extension")
+	}
+	ts := filename[len(prefix) : len(filename)-len(ext)]
+	return time.Parse(timeFormat, ts)
+}
+
+
+
+
+
+// logInfo is a convenience struct to return the filename and its embedded
+// timestamp.
+type logInfo struct {
+	timestamp time.Time
+	os.DirEntry
+}
+
+// byFormatTime sorts by newest time formatted in the name.
+type byFormatTime []logInfo
+
+func (b byFormatTime) Less(i, j int) bool {
+	return b[i].timestamp.After(b[j].timestamp)
+}
+
+func (b byFormatTime) Swap(i, j int) {
+	b[i], b[j] = b[j], b[i]
+}
+
+func (b byFormatTime) Len() int {
+	return len(b)
 }
