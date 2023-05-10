@@ -47,6 +47,7 @@ func NewZapLogger(cfg LoggerConfig) (*zap.Logger, error) {
 //日志初始化
 func LoadConfig(cfg LoggerConfig) {
 	RegisterSinkLumberjackSink()
+	RegisterDateformatSink()
 
 	p, err := NewZapLogger(cfg)
 	FatalIfError(err)

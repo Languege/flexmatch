@@ -28,11 +28,13 @@ log:
     paths:
       - lumberjack://./logs/runtime.log
       - stdout
-    level: debug
   rpc:
     paths:
       - lumberjack://./logs/rpc.log
       - stdout
+  accesslog:
+    paths:
+      - dateformat://./logs/accesslog?usecache=true&cachesize=10
 
 stat:
   port: 7007
