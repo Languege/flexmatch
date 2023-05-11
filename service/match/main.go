@@ -13,11 +13,13 @@ import (
 	"log"
 	"net"
 	"github.com/Languege/flexmatch/service/match/entities"
-	"github.com/Languege/flexmatch/service/match/event_subscribers"
 	"github.com/Languege/flexmatch/common/logger"
 
 	"github.com/Languege/flexmatch/common/bootstraps"
 	"github.com/Languege/flexmatch/common/grpc_middleware"
+	logger_pubsub "github.com/Languege/flexmatch/service/match/pubsub/logging"
+	kafka_pubsub "github.com/Languege/flexmatch/service/match/pubsub/kafka"
+	"github.com/Languege/flexmatch/service/match/pubsub"
 )
 
 var(
@@ -28,7 +30,15 @@ var(
 func init() {
 	//服务发布
 	bootstraps.PublishService(viper.GetString("rpc.service"), viper.GetInt("rpc.port"))
-	entities.RegisterSubscribe(event_subscribers.KafkaMatchEventSubscribe)
+
+	//匹配事件发布器设置
+	loggerPublisher := logger_pubsub.NewLoggerPublisher()
+	kafkaPublisher := kafka_pubsub.NewKafkaPublisher(viper.GetStringSlice("kafka.bootstrapServers"))
+	multiPublisher := pubsub.NewMultiPublisher(loggerPublisher, kafkaPublisher)
+	entities.SetPublisher(multiPublisher)
+
+	//TODO: 临时使用mock
+	entities.SetGameClient(entities.NewMockGameClient())
 }
 
 

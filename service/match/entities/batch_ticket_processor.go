@@ -360,7 +360,7 @@ func (proc *BatchTicketProcessor) handleTicketCancelRequests(tickets []*open.Mat
 				Message:        "Cancelled by request.",
 			}
 
-			proc.Matchmaking.eventSubs.MatchEventInput(cancelMatchEvent)
+			publisher.Send(proc.Matchmaking.Conf.MatchEventQueueTopic, cancelMatchEvent)
 			continue
 		}
 		newTickets = append(newTickets, ticket)
@@ -430,7 +430,7 @@ func (proc *BatchTicketProcessor) matchPotential(match *Match) {
 		AcceptanceRequired: proc.Matchmaking.Conf.AcceptanceRequired,
 	}
 
-	proc.Matchmaking.eventSubs.MatchEventInput(matchCreatedEvent)
+	publisher.Send(proc.Matchmaking.Conf.MatchEventQueueTopic,matchCreatedEvent)
 }
 
 // ticketMaybeQueue 票据尝试重入

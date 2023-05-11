@@ -11,6 +11,7 @@ import (
 	"sort"
 	"sync"
 	"time"
+	"github.com/Languege/flexmatch/service/match/pubsub"
 )
 
 type Matchmaking struct {
@@ -20,7 +21,7 @@ type Matchmaking struct {
 	rsw *MatchmakingRuleSetWrapper
 
 	//事件处理通知
-	eventSubs *matchEventSubscribeManager
+	eventPubs pubsub.MultiPublisher
 
 	//票据队列
 	TicketQueue TicketQueue
@@ -47,7 +48,7 @@ type Matchmaking struct {
 func NewMatchmaking(conf *open.MatchmakingConfiguration) *Matchmaking {
 	e := &Matchmaking{
 		Conf:            conf,
-		eventSubs:       newMatchEventSubscribeManager(conf.MatchEventQueueTopic),
+		//eventPubs:       newMatcheventPubscribeManager(conf.MatchEventQueueTopic),
 		batchTicketChan: make(chan []*open.MatchmakingTicket, 10),
 		ticketMap:       map[string]*open.MatchmakingTicket{},
 		ticketGuard:     &sync.Mutex{},
@@ -124,7 +125,7 @@ func (e *Matchmaking) checkTicketsTimeout(tickets []*open.MatchmakingTicket) (re
 			Message:        "tickets are timeout when they were popped from batch tickets channel",
 		}
 
-		e.eventSubs.MatchEventInput(timeOutEvent)
+		publisher.Send(e.Conf.MatchEventQueueTopic, timeOutEvent)
 	}
 
 	return
@@ -240,7 +241,7 @@ func (e *Matchmaking) TicketSearching(tickets []*open.MatchmakingTicket) {
 		EstimatedWaitMillis: 5000,
 	}
 
-	e.eventSubs.MatchEventInput(ev)
+	publisher.Send(e.Conf.MatchEventQueueTopic, ev)
 }
 
 // DispatchBatches 票据批次分派

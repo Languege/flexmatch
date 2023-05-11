@@ -84,7 +84,7 @@ func (m *Match) StartAccept(acceptanceTimeoutSeconds int64, placingMatchChan cha
 					AcceptanceCompletedReason: "TimeOut",
 				}
 
-				m.matchmaking.eventSubs.MatchEventInput(completedEvent)
+				publisher.Send(m.matchmaking.Conf.MatchEventQueueTopic, completedEvent)
 				return
 			case ticketId := <-m.acceptMatchChan:
 				//进行过票据接受/拒绝的票据
@@ -113,7 +113,7 @@ func (m *Match) StartAccept(acceptanceTimeoutSeconds int64, placingMatchChan cha
 					MatchId:        m.MatchId,
 				}
 
-				m.matchmaking.eventSubs.MatchEventInput(acceptMatchEvent)
+				publisher.Send(m.matchmaking.Conf.MatchEventQueueTopic,acceptMatchEvent)
 
 				if m.CheckAccepted() {
 					//匹配信息删除 TODO:是否等待游戏结束再做删除？
@@ -132,7 +132,7 @@ func (m *Match) StartAccept(acceptanceTimeoutSeconds int64, placingMatchChan cha
 						AcceptanceCompletedReason: "Acceptance",
 					}
 
-					m.matchmaking.eventSubs.MatchEventInput(completedEvent)
+					publisher.Send(m.matchmaking.Conf.MatchEventQueueTopic,completedEvent)
 
 					//为对局准备游戏会话
 					placingMatchChan <- m
@@ -170,7 +170,7 @@ func (m *Match) StartAccept(acceptanceTimeoutSeconds int64, placingMatchChan cha
 					MatchId:        m.MatchId,
 				}
 
-				m.matchmaking.eventSubs.MatchEventInput(acceptMatchEvent)
+				publisher.Send(m.matchmaking.Conf.MatchEventQueueTopic,acceptMatchEvent)
 
 				//上报接收匹配完成事件
 				acceptMatchCompleted := &open.MatchEvent{
@@ -180,7 +180,7 @@ func (m *Match) StartAccept(acceptanceTimeoutSeconds int64, placingMatchChan cha
 					AcceptanceCompletedReason: "Rejection",
 				}
 
-				m.matchmaking.eventSubs.MatchEventInput(acceptMatchCompleted)
+				publisher.Send(m.matchmaking.Conf.MatchEventQueueTopic,acceptMatchCompleted)
 
 
 				if m.matchmaking.Conf.BackfillMode == open.BackfillMode_AUTOMATIC.String() {
@@ -245,7 +245,7 @@ func (m *Match) StartGameSession() {
 			Message:        err.Error(),
 		}
 
-		m.matchmaking.eventSubs.MatchEventInput(failedEvent)
+		publisher.Send(m.matchmaking.Conf.MatchEventQueueTopic,failedEvent)
 
 		return
 	}
@@ -279,7 +279,7 @@ func (m *Match) StartGameSession() {
 		GameSessionInfo: m.GameSessionConnectionInfo,
 	}
 
-	m.matchmaking.eventSubs.MatchEventInput(succeedEvent)
+	publisher.Send(m.matchmaking.Conf.MatchEventQueueTopic,succeedEvent)
 }
 
 func (m *Match) BuildGameSessionInfo() *open.GameSessionConnectionInfo {

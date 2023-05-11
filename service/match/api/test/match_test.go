@@ -12,10 +12,9 @@ import (
 	"github.com/google/uuid"
 	"testing"
 	"time"
-	"github.com/Shopify/sarama"
-	"encoding/json"
-	"log"
-	kafka_wrapper "github.com/Languege/flexmatch/service/match/wrappers/kafka"
+	kafka_pubsub "github.com/Languege/flexmatch/service/match/pubsub/kafka"
+	"github.com/spf13/viper"
+	"github.com/Languege/flexmatch/common/logger"
 )
 
 func defaultConf() *open.MatchmakingConfiguration {
@@ -103,49 +102,58 @@ func TestStartMatchmaking(t *testing.T) {
 
 func TestMatchEventConsume(t *testing.T) {
 	ch := make(chan struct{}, 1)
-	kafka_wrapper.RegisterSimpleConsumerFromBeginning(defaultConf().MatchEventQueueTopic,
-		"matcheventpushtoclient", func(message *sarama.ConsumerMessage)(err error)  {
-			ev := &open.MatchEvent{}
-			log.Println(string(message.Value))
-			err = json.Unmarshal(message.Value, ev)
-			if err != nil {
-				return
-			}
-			log.Println(ev.MatchEventType.String(), ev.Tickets)
+	sub, err := kafka_pubsub.NewKafkaSubscriber(viper.GetStringSlice("kafka.bootstrapServers"),
+		[]string{defaultConf().MatchEventQueueTopic}, "matcheventpushtoclient")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-			switch ev.MatchEventType {
-			case open.MatchEventType_MatchmakingSearching:
-				//进行匹配搜索
-				//TODO:遍历票据向用户通知匹配开始
-			case open.MatchEventType_MatchmakingCancelled:
-				//用户取消匹配
-				//TODO:告知用户匹配取消
-			case open.MatchEventType_PotentialMatchCreated:
-				//存在潜在匹配
-				//TODO:广播对局已找到，等待玩家接受（无需接受自动跳过）
-			case open.MatchEventType_AcceptMatch:
-				//接受或拒绝对局
-				//TODO:广播对局内所有玩家的接受状态
-			case open.MatchEventType_AcceptMatchCompleted:
-				//接受匹配阶段完成（超时、任意拒绝、全部接受）
-				//TODO:广播对局内所有玩家接受阶段结束，若结束原因为为超时，客户端退回组队页面，若为任意拒绝，拒绝的玩家（组队）退出
-				//组队页面，若为全部接受，等待匹配成功通知
-			case open.MatchEventType_MatchmakingSucceeded:
-				//匹配成功，并且已创建游戏对局
-				//TODO: 广播匹配成功通知，包含对局连接信息，客户端进行服务绑定，进入对局服务器房间
+	sub.RegisterEventHandler(open.MatchEventType_MatchmakingSearching, func(ev *open.MatchEvent) error {
+		logger.Info("遍历票据向用户通知匹配开始")
+		return nil
+	})
+
+	sub.RegisterEventHandler(open.MatchEventType_MatchmakingCancelled, func(ev *open.MatchEvent) error {
+		logger.Info("告知用户匹配取消")
+		return nil
+	})
+
+	sub.RegisterEventHandler(open.MatchEventType_PotentialMatchCreated, func(ev *open.MatchEvent) error {
+		logger.Info("广播对局已找到，等待玩家接受（无需接受自动跳过）")
+		return nil
+	})
+
+	sub.RegisterEventHandler(open.MatchEventType_AcceptMatch, func(ev *open.MatchEvent) error {
+		logger.Info("广播对局内所有玩家的接受状态")
+		return nil
+	})
+
+	sub.RegisterEventHandler(open.MatchEventType_AcceptMatchCompleted, func(ev *open.MatchEvent) error {
+		logger.Info("广播对局内所有玩家接受阶段结束，若结束原因为为超时，客户端退回组队页面，若为任意拒绝，拒绝的玩家（组队）退出")
+		return nil
+	})
+
+	sub.RegisterEventHandler(open.MatchEventType_MatchmakingSucceeded, func(ev *open.MatchEvent) error {
+		logger.Info("广播匹配成功通知，包含对局连接信息，客户端进行服务绑定，进入对局服务器房间")
+		ch <- struct{}{}
+		return nil
+	})
+
+	sub.RegisterEventHandler(open.MatchEventType_MatchmakingTimedOut, func(ev *open.MatchEvent) error {
+		logger.Info("广播匹配成功通知，包含对局连接信息，客户端进行服务绑定，进入对局服务器房间")
+		ch <- struct{}{}
+		return nil
+	})
+
+	sub.RegisterEventHandler(open.MatchEventType_MatchmakingFailed, func(ev *open.MatchEvent) error {
+		logger.Info("通知票据内玩家匹配失败")
+		ch <- struct{}{}
+		return nil
+	})
 
 
-				//忽略,仅测试
-				ch <- struct{}{}
-			case open.MatchEventType_MatchmakingTimedOut:
-				//匹配超时
-				//TODO: 通知票据内玩家匹配超时
-			case open.MatchEventType_MatchmakingFailed:
-				//匹配失败（内部原因）
-				//TODO:通知票据内玩家匹配失败
-			}
-			return
-		})
+	sub.Start()
+
 	for i := 0; i < 10;i++ {
 		ticket := newTicket()
 		req := &open.StartMatchmakingRequest{

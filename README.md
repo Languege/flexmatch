@@ -1,7 +1,7 @@
 [亚马逊FlexMatch](https://docs.aws.amazon.com/zh_cn/gamelift/latest/flexmatchguide/match-intro.html) 服务的go语言实现
 
 ### TODO
-- [ ] 迁移服务注册/发现、rpc日志、授权
+- [ ] 迁移服务注册/发现、rpc日志
 
 - [ ] kafka 事件的接口封装 客户端
 

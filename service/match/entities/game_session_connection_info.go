@@ -12,16 +12,12 @@ import (
 
 var gameClient open.FlexMatchGameClient
 
-func init() {
-	gameClient = newMockGameClient()
-}
-
 type MockGameClient struct {
 	roomIDGen 		*atomic.Int64
 }
 
 
-func newMockGameClient() *MockGameClient {
+func NewMockGameClient() *MockGameClient {
 	return &MockGameClient{
 		roomIDGen:  &atomic.Int64{},
 	}
@@ -39,9 +35,7 @@ func(c *MockGameClient) CreateGameSession(ctx context.Context, in *open.CreateGa
 	return resp, nil
 }
 
-
-
-//对局会话连接信息
-type GameSessionConnectionInfo struct {
-
+//设置游戏grpc客户端
+func SetGameClient(cli open.FlexMatchGameClient) {
+	gameClient = cli
 }

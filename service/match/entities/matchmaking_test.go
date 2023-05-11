@@ -5,6 +5,7 @@ package entities
 
 import (
 	_ "github.com/Languege/flexmatch/service/match/conf"
+	_ "github.com/Languege/flexmatch/common/bootstraps"
 	"github.com/Languege/flexmatch/service/match/proto/open"
 	"github.com/google/uuid"
 	"github.com/juju/errors"
@@ -15,11 +16,14 @@ import (
 	"log"
 	"encoding/json"
 	"github.com/golang/protobuf/proto"
-	"github.com/Languege/flexmatch/common/bootstraps"
+
+	logger_pubsub "github.com/Languege/flexmatch/service/match/pubsub/logging"
+	"github.com/Languege/flexmatch/service/match/pubsub"
 )
 
+
 func init() {
-	bootstraps.InitLogger()
+	SetGameClient(NewMockGameClient())
 }
 
 func defaultConf() *open.MatchmakingConfiguration {
@@ -78,32 +82,51 @@ func newTicket() *open.MatchmakingTicket {
 	}
 }
 
+type autoAcceptPublisher struct {
+	handler func(topic string, ev *open.MatchEvent) error
+}
+
+func(autoAcceptPublisher) Name() string {
+	return "auto_accept"
+}
+
+func(p autoAcceptPublisher) Send(topic string, ev *open.MatchEvent) error {
+	return p.handler(topic, ev)
+}
+
 func TestMatchmaking_TicketInput(t *testing.T) {
 	config := defaultConf()
 	//conf.AcceptanceRequired = false
 	matchmaking := NewMatchmaking(config)
 
 	wg := &sync.WaitGroup{}
-	matchmaking.eventSubs.Register(func(topic string, ev *open.MatchEvent) {
-		switch ev.MatchEventType {
-		case open.MatchEventType_PotentialMatchCreated:
-			go func() {
-				defer wg.Done()
-				if ev.AcceptanceRequired {
-					//循环接收对局
-					for _, ticket := range ev.Tickets {
-						for _, player := range ticket.Players {
-							time.Sleep(time.Millisecond * 100)
-							err := matchmaking.AcceptMatch(ticket.TicketId, player.UserId, open.AcceptanceType_ACCEPT)
-							if err != nil {
-								t.Fatal(errors.ErrorStack(err))
+	pub1 := &autoAcceptPublisher{
+		handler: func(topic string, ev *open.MatchEvent) error {
+			switch ev.MatchEventType {
+			case open.MatchEventType_PotentialMatchCreated:
+				go func() {
+					defer wg.Done()
+					if ev.AcceptanceRequired {
+						//循环接收对局
+						for _, ticket := range ev.Tickets {
+							for _, player := range ticket.Players {
+								time.Sleep(time.Millisecond * 100)
+								err := matchmaking.AcceptMatch(ticket.TicketId, player.UserId, open.AcceptanceType_ACCEPT)
+								if err != nil {
+									t.Fatal(errors.ErrorStack(err))
+								}
 							}
 						}
 					}
-				}
-			}()
-		}
-	})
+				}()
+			}
+
+			return nil
+		},
+	}
+	loggerPub := logger_pubsub.NewLoggerPublisher()
+	multiPub := pubsub.NewMultiPublisher(loggerPub, pub1)
+	SetPublisher(multiPub)
 
 	st := time.Now()
 	N := 1
@@ -130,41 +153,45 @@ func TestMatchmaking_TicketCancel(t *testing.T) {
 	conf.BackfillMode = open.BackfillMode_AUTOMATIC.String()
 	matchmaking := NewMatchmaking(conf)
 
-	matchmaking.eventSubs.Register(func(topic string, ev *open.MatchEvent) {
-		switch ev.MatchEventType {
-		case open.MatchEventType_PotentialMatchCreated:
-			if ev.AcceptanceRequired {
-				//循环接收对局
-				for _, ticket := range ev.Tickets {
-					//最后一个票据拒绝
-					acceptType := open.AcceptanceType_ACCEPT
+	SetPublisher(&autoAcceptPublisher{
+		handler: func(topic string, ev *open.MatchEvent) error {
+			switch ev.MatchEventType {
+			case open.MatchEventType_PotentialMatchCreated:
+				if ev.AcceptanceRequired {
+					//循环接收对局
+					for _, ticket := range ev.Tickets {
+						//最后一个票据拒绝
+						acceptType := open.AcceptanceType_ACCEPT
 
-					for _, player := range ticket.Players {
-						time.Sleep(time.Millisecond * 100)
-						err := matchmaking.AcceptMatch(ticket.TicketId, player.UserId, acceptType)
-						if err != nil {
-							t.Fatal(errors.ErrorStack(err))
+						for _, player := range ticket.Players {
+							time.Sleep(time.Millisecond * 100)
+							err := matchmaking.AcceptMatch(ticket.TicketId, player.UserId, acceptType)
+							if err != nil {
+								t.Fatal(errors.ErrorStack(err))
+							}
 						}
 					}
 				}
-			}
-		case open.MatchEventType_AcceptMatch:
-			for _, ticket := range ev.Tickets {
-				if ticket.CancelRequest {
-					go func() {
-						time.Sleep(time.Second)
-						//重新加入
-						ticket.TicketId = uuid.NewString()
-						err := matchmaking.TicketInput(ticket)
-						if err != nil {
-							t.Fatal(err)
-						}
-					}()
+			case open.MatchEventType_AcceptMatch:
+				for _, ticket := range ev.Tickets {
+					if ticket.CancelRequest {
+						go func() {
+							time.Sleep(time.Second)
+							//重新加入
+							ticket.TicketId = uuid.NewString()
+							err := matchmaking.TicketInput(ticket)
+							if err != nil {
+								t.Fatal(err)
+							}
+						}()
 
-					break
+						break
+					}
 				}
 			}
-		}
+
+			return nil
+		},
 	})
 
 	for i := 0; i < 11; i++ {
@@ -190,45 +217,49 @@ func TestMatchmaking_BackfillMode(t *testing.T) {
 	conf.AcceptanceTimeoutSeconds = 1000
 	matchmaking := NewMatchmaking(conf)
 	var rejectMatchTicketId  string
-	matchmaking.eventSubs.Register(func(topic string, ev *open.MatchEvent) {
-		switch ev.MatchEventType {
-		case open.MatchEventType_PotentialMatchCreated:
-			if ev.AcceptanceRequired {
-				//循环接收对局
-				for _, ticket := range ev.Tickets {
-					//最后一个票据拒绝
-					acceptType := open.AcceptanceType_ACCEPT
-					if ticket.TicketId == rejectMatchTicketId {
-						acceptType = open.AcceptanceType_REJECT
-					}
+	SetPublisher(&autoAcceptPublisher{
+		handler: func(topic string, ev *open.MatchEvent) error {
+			switch ev.MatchEventType {
+			case open.MatchEventType_PotentialMatchCreated:
+				if ev.AcceptanceRequired {
+					//循环接收对局
+					for _, ticket := range ev.Tickets {
+						//最后一个票据拒绝
+						acceptType := open.AcceptanceType_ACCEPT
+						if ticket.TicketId == rejectMatchTicketId {
+							acceptType = open.AcceptanceType_REJECT
+						}
 
-					for _, player := range ticket.Players {
-						time.Sleep(time.Millisecond * 100)
-						err := matchmaking.AcceptMatch(ticket.TicketId, player.UserId, acceptType)
-						if err != nil {
-							t.Fatal(errors.ErrorStack(err))
-						}
-						if acceptType == open.AcceptanceType_REJECT {
-							break
+						for _, player := range ticket.Players {
+							time.Sleep(time.Millisecond * 100)
+							err := matchmaking.AcceptMatch(ticket.TicketId, player.UserId, acceptType)
+							if err != nil {
+								t.Fatal(errors.ErrorStack(err))
+							}
+							if acceptType == open.AcceptanceType_REJECT {
+								break
+							}
 						}
 					}
 				}
-			}
-		case open.MatchEventType_AcceptMatch:
-			for _, ticket := range ev.Tickets {
-				if ticket.StatusReason == "RejectMatch" && ticket.Status == open.MatchmakingTicketStatus_CANCELLED.String() {
-					go func(ticket *open.MatchmakingTicket) {
-						time.Sleep(time.Second)
-						//重新加入
-						//ticket.TicketId = uuid.NewString()
-						//err := matchmaking.TicketInput(ticket)
-						//if err != nil {
-						//	t.Fatal(err)
-						//}
-					}(ticket)
+			case open.MatchEventType_AcceptMatch:
+				for _, ticket := range ev.Tickets {
+					if ticket.StatusReason == "RejectMatch" && ticket.Status == open.MatchmakingTicketStatus_CANCELLED.String() {
+						go func(ticket *open.MatchmakingTicket) {
+							time.Sleep(time.Second)
+							//重新加入
+							//ticket.TicketId = uuid.NewString()
+							//err := matchmaking.TicketInput(ticket)
+							//if err != nil {
+							//	t.Fatal(err)
+							//}
+						}(ticket)
+					}
 				}
 			}
-		}
+
+			return nil
+		},
 	})
 
 	for i := 0; i < 10; i++ {
