@@ -17,6 +17,8 @@ import (
 	"github.com/spf13/viper"
 	"github.com/Languege/flexmatch/common/logger"
 	redis_wrapper "github.com/Languege/flexmatch/common/wrappers/redis"
+	"sync"
+	"sync/atomic"
 )
 
 func defaultConf() *open.MatchmakingConfiguration {
@@ -246,4 +248,96 @@ func TestMatchEventConsumeUseRedisStream(t *testing.T) {
 	sub.Start()
 
 	<- ch
+}
+
+
+func TestMatchEventConsumeUseRedisStreamPerformance(t *testing.T) {
+	N := 1000
+	var successCount, timeoutCount int64
+	wg := &sync.WaitGroup{}
+	conf := redis_wrapper.Configure{}
+	err := viper.UnmarshalKey("publishers.redis", &conf)
+	if err != nil {
+		logger.Panicf("redis.publisher unmarshal err %s", err)
+	}
+	sub := redis_pubsub.NewRedisStreamSubscriber(conf,
+		defaultConf().MatchEventQueueTopic, "matcheventpushtoclient",
+		redis_pubsub.WithConsumer("consumer01"),
+		redis_pubsub.WithGoroutineNum(50))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sub.RegisterEventHandler(open.MatchEventType_MatchmakingSearching, func(ev *open.MatchEvent) error {
+		logger.Info("遍历票据向用户通知匹配开始")
+		return nil
+	})
+
+	sub.RegisterEventHandler(open.MatchEventType_MatchmakingCancelled, func(ev *open.MatchEvent) error {
+		logger.Info("告知用户匹配取消")
+		return nil
+	})
+
+	sub.RegisterEventHandler(open.MatchEventType_PotentialMatchCreated, func(ev *open.MatchEvent) error {
+		logger.Info("广播对局已找到，等待玩家接受（无需接受自动跳过）")
+		return nil
+	})
+
+	sub.RegisterEventHandler(open.MatchEventType_AcceptMatch, func(ev *open.MatchEvent) error {
+		logger.Info("广播对局内所有玩家的接受状态")
+		return nil
+	})
+
+	sub.RegisterEventHandler(open.MatchEventType_AcceptMatchCompleted, func(ev *open.MatchEvent) error {
+		logger.Info("广播对局内所有玩家接受阶段结束，若结束原因为为超时，客户端退回组队页面，若为任意拒绝，拒绝的玩家（组队）退出")
+		return nil
+	})
+
+	sub.RegisterEventHandler(open.MatchEventType_MatchmakingSucceeded, func(ev *open.MatchEvent) error {
+		defer wg.Done()
+		atomic.AddInt64(&successCount, 1)
+		logger.Info("广播匹配成功通知，包含对局连接信息，客户端进行服务绑定，进入对局服务器房间")
+		return nil
+	})
+
+	sub.RegisterEventHandler(open.MatchEventType_MatchmakingTimedOut, func(ev *open.MatchEvent) error {
+		defer wg.Done()
+		atomic.AddInt64(&timeoutCount, 1)
+		logger.Info("通知票据内玩家匹配超时")
+		return nil
+	})
+
+	sub.RegisterEventHandler(open.MatchEventType_MatchmakingFailed, func(ev *open.MatchEvent) error {
+		logger.Info("通知票据内玩家匹配失败")
+		return nil
+	})
+
+
+	sub.Start()
+
+	st := time.Now()
+	for i := 0; i < N;i++ {
+		wg.Add(1)
+		for j := 0; j < 10; j++ {
+			ticket := newTicket()
+			req := &open.StartMatchmakingRequest{
+				ConfigurationName: "5v5ranking",
+				TicketId:          ticket.TicketId,
+				Players:           ticket.Players,
+			}
+
+			_, err := match_api.FlexMatchClient.StartMatchmaking(context.TODO(), req)
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
+	}
+
+
+	wg.Wait()
+
+	t.Logf("success %d timeout %d", successCount, timeoutCount)
+	cost := time.Now().Sub(st).Nanoseconds() / int64(N)
+	t.Log(cost) //N=50时，32965389 ns;N=200时, 34534875 ns;N=500时，32311304 ns
 }

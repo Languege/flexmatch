@@ -44,9 +44,6 @@ func NewAsyncProducer(brokerList []string)(producer sarama.AsyncProducer) {
 			err = producer.Close()
 			logger.Infof("[kafka]closing kafka producer err %v", err)
 		}
-
-		time.Sleep(time.Second *3)
-		os.Exit(0)
 	}()
 
 	return

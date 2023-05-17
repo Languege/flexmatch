@@ -3,8 +3,15 @@
 // @company soulgame
 package bootstraps
 
+import (
+	"time"
+)
+
 func init() {
 	InitLogger()
 
 	InitEtcd()
+
+
+	WaitExit(time.Second)
 }

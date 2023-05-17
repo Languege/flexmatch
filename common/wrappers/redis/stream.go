@@ -78,7 +78,7 @@ func(rw *RedisWrapper) XAdd(key string, in interface{}, params ...interface{}) (
 
 	_, err = conn.Do("XADD", args...)
 	if err != nil {
-		logger.Errorw(err.Error(), zap.String("command", "XADD"), zap.String("args", fmt.Sprint(args...)))
+		logger.Errorw(err.Error(), zap.String("command", "XADD"), zap.String("args", fmt.Sprint("%v", args)))
 		return
 	}
 	return
@@ -96,7 +96,7 @@ func(rw *RedisWrapper) XLen(key string) (ret int, err error) {
 
 	ret, err = redis.Int(conn.Do("XLEN", args...))
 	if err != nil {
-		logger.Errorw(err.Error(), zap.String("command", "XLEN"), zap.String("args", fmt.Sprint(args...)))
+		logger.Errorw(err.Error(), zap.String("command", "XLEN"), zap.String("args", fmt.Sprint("%v", args)))
 		return
 	}
 	return
@@ -120,7 +120,7 @@ func(rw *RedisWrapper) XRead(key string, count int, timeout time.Duration, out i
 	var reply interface{}
 	reply, err = conn.Do("XREAD", args...)
 	if err != nil {
-		logger.Errorw(err.Error(), zap.String("command", "XREAD"), zap.String("args", fmt.Sprint(args...)))
+		logger.Errorw(err.Error(), zap.String("command", "XREAD"), zap.String("args", fmt.Sprint("%v", args)))
 		return
 	}
 
@@ -163,7 +163,7 @@ func (rw *RedisWrapper) XGroupDestroy(key, groupName string) (reply string, err 
 
 	reply, err = redis.String(conn.Do("XGROUP", args...))
 	if err != nil {
-		logger.Errorw(err.Error(), zap.String("command", "XGROUP"), zap.String("args", fmt.Sprint(args...)))
+		logger.Errorw(err.Error(), zap.String("command", "XGROUP"), zap.String("args", fmt.Sprint("%v", args)))
 		return
 	}
 	return
@@ -187,7 +187,7 @@ func (rw *RedisWrapper) XReadGroup(group, consumer string, count int, timeout ti
 	var reply interface{}
 	reply, err = conn.Do("XREADGROUP", args...)
 	if err != nil {
-		logger.Errorw(err.Error(), zap.String("command", "XREADGROUP"), zap.String("args", fmt.Sprint(args...)))
+		logger.Errorw(err.Error(), zap.String("command", "XREADGROUP"), zap.String("args", fmt.Sprint("%v", args)))
 		return
 	}
 
@@ -201,7 +201,7 @@ func (rw *RedisWrapper) XAck(group, queueKey, id string) (acknowledged int, err 
 	args := redis.Args{group, queueKey, id}
 	acknowledged, err = redis.Int(conn.Do("XACK", args...))
 	if err != nil {
-		logger.Errorw(err.Error(), zap.String("command", "XACK"), zap.String("args", fmt.Sprint(args...)))
+		logger.Errorw(err.Error(), zap.String("command", "XACK"), zap.String("args", fmt.Sprint("%v", args)))
 	}
 
 	return
@@ -216,7 +216,7 @@ func (rw *RedisWrapper) XInfoGroups(queueKey string) (ret []*ConsumerGroup, err 
 	var reply interface{}
 	reply, err = conn.Do("XINFO", args...)
 	if err != nil {
-		logger.Errorw(err.Error(), zap.String("command", "XINFO"), zap.String("args", fmt.Sprint(args...)))
+		logger.Errorw(err.Error(), zap.String("command", "XINFO"), zap.String("args", fmt.Sprint("%v", args)))
 		return
 	}
 
@@ -243,7 +243,7 @@ func (rw *RedisWrapper) XInfoStream(queueKey string) (ret *StreamInfo, err error
 	var reply interface{}
 	reply, err = conn.Do("XINFO", args...)
 	if err != nil {
-		logger.Errorw(err.Error(), zap.String("command", "XINFO"), zap.String("args", fmt.Sprint(args...)))
+		logger.Errorw(err.Error(), zap.String("command", "XINFO"), zap.String("args", fmt.Sprint("%v", args)))
 		return
 	}
 

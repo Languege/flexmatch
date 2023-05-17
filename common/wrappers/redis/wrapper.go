@@ -274,7 +274,10 @@ func (rw *RedisWrapper) closeConnection() {
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-c
-		rw.Close()
+		err := rw.Close()
+		if err != nil {
+			logger.Error(err)
+		}
 	}()
 }
 

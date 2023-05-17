@@ -14,10 +14,15 @@ import (
 	"encoding/json"
 	"github.com/Languege/flexmatch/service/match/proto/open"
 	"os"
+	"sync"
+	"hash/crc32"
 )
 
 const (
 	defaultReadTimeOut = time.Second * 30
+
+	//默认匹配事件处理协程数
+	defaultEventGoroutineNum = 10
 )
 
 type RedisStreamSubscriber struct {
@@ -27,6 +32,10 @@ type RedisStreamSubscriber struct {
 	group       string
 	consumer    string
 	readTimeout time.Duration
+
+	goroutineNum 	int
+	evChx 	[]chan *open.MatchEvent
+	initOnce 		sync.Once
 }
 
 type Option func(s *RedisStreamSubscriber)
@@ -36,6 +45,13 @@ func WithConsumer(consumer string) Option {
 		s.consumer = consumer
 	}
 }
+
+func WithGoroutineNum(num int) Option {
+	return func(s *RedisStreamSubscriber) {
+		s.goroutineNum = num
+	}
+}
+
 
 func WithReadTimeout(timeout time.Duration) Option {
 	return func(s *RedisStreamSubscriber) {
@@ -51,6 +67,7 @@ func NewRedisStreamSubscriber(conf redis_wrapper.Configure, topic string, group 
 		group:         group,
 		consumer:      uuid.NewString(),
 		readTimeout:   defaultReadTimeOut,
+		goroutineNum:  defaultEventGoroutineNum,
 	}
 
 	for _, opt := range opts {
@@ -60,11 +77,11 @@ func NewRedisStreamSubscriber(conf redis_wrapper.Configure, topic string, group 
 	return s
 }
 
-func (s RedisStreamSubscriber) Name() string {
+func (s *RedisStreamSubscriber) Name() string {
 	return "redis_stream"
 }
 
-func(s RedisStreamSubscriber) consumerGroupExist(infos []*redis_wrapper.ConsumerGroup) bool {
+func(s *RedisStreamSubscriber) consumerGroupExist(infos []*redis_wrapper.ConsumerGroup) bool {
 	for _, info := range infos {
 		if info.Name == s.group {
 			return true
@@ -74,7 +91,8 @@ func(s RedisStreamSubscriber) consumerGroupExist(infos []*redis_wrapper.Consumer
 	return false
 }
 
-func (s RedisStreamSubscriber) Start() {
+//init 初始化设置
+func(s *RedisStreamSubscriber) init() {
 	infos, _ := s.redis.XInfoGroups(s.topic)
 	if !s.consumerGroupExist(infos) {
 		reply, err := s.redis.XGroupCreateFromBeginning(s.topic, s.group)
@@ -83,11 +101,43 @@ func (s RedisStreamSubscriber) Start() {
 		}
 	}
 
+	s.initOnce.Do(func() {
+		//初始化协程数
+		for i := 0; i < s.goroutineNum;i++ {
+			ch := make(chan *open.MatchEvent, 1)
+			s.evChx = append(s.evChx, ch)
+			go s.asyncHandler(ch)
+		}
+	})
+}
+
+func(s *RedisStreamSubscriber) asyncHandler(ch <-chan *open.MatchEvent) {
+	for{
+		select {
+		case ev, ok := <-ch:
+			if !ok {
+				logger.Info("async handle channel closed")
+				return
+			}
+
+			if err := s.Receive(ev); err != nil {
+				logger.Errorw(fmt.Sprintf("handle match event err %s ", err), zap.Any("ev", ev))
+			}
+		}
+	}
+}
+
+
+
+func (s *RedisStreamSubscriber) Start() {
+	//初始化检测
+	s.init()
+
 	go s.handleEvents()
 }
 
 
-func(s RedisStreamSubscriber) handleEvents() {
+func(s *RedisStreamSubscriber) handleEvents() {
 	for {
 		ml := []*redis_wrapper.ByteStreamEntry{}
 		err := s.redis.XReadGroup(s.group, s.consumer, 10, s.readTimeout, s.topic, &ml)
@@ -108,15 +158,24 @@ func(s RedisStreamSubscriber) handleEvents() {
 				goto MarkMessage
 			}
 
-			if err = s.Receive(ev); err != nil {
-				logger.Errorw(fmt.Sprintf("handle match event err %s ", err), zap.Any("ev", ev))
-			}
+			s.dispatch(ev)
 
 		MarkMessage:
 			_, err = s.redis.XAck(s.group, s.topic, msg.ID)
 			if err != nil {
 				logger.DPanicf("%s XACK ID %s , group %s topic %s err %s", s.consumer, msg.ID, s.group, s.topic, err)
 			}
+		}
+	}
+}
+
+func(s *RedisStreamSubscriber) dispatch(ev *open.MatchEvent) {
+	if ev.MatchId != "" {
+		shard := int(crc32.ChecksumIEEE([]byte(ev.MatchId))) % s.goroutineNum
+		s.evChx[shard] <- ev
+	}else{
+		if err := s.Receive(ev); err != nil {
+			logger.Errorw(fmt.Sprintf("handle match event err %s ", err), zap.Any("ev", ev))
 		}
 	}
 }

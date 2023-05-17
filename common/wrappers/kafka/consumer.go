@@ -49,8 +49,6 @@ func RegisterConsumerFromBeginning(consumer sarama.ConsumerGroupHandler, brokerL
 		cancel()
 		err = client.Close()
 		log.Printf("[kafka]closing comsumer %s err %v \n", group, err)
-		time.Sleep(time.Second *3)
-		os.Exit(0)
 	}()
 }
 
