@@ -11,6 +11,7 @@ import (
 	"github.com/Shopify/sarama"
 	"go.uber.org/zap"
 	kafka_wrapper "github.com/Languege/flexmatch/common/wrappers/kafka"
+	"github.com/Languege/flexmatch/service/match/pubsub"
 )
 type eventHandler func(ev *open.MatchEvent) error
 
@@ -18,15 +19,15 @@ type KafkaSubscriber struct {
 	brokerList    []string
 	topics        []string
 	group         string
-	eventHandlers map[open.MatchEventType]eventHandler
+	pubsub.EventHandlers
 }
 
 func NewKafkaSubscriber(brokerList []string, topics []string, group string) (*KafkaSubscriber, error) {
 	s := &KafkaSubscriber{
-		brokerList: brokerList,
-		topics:     topics,
-		group:      group,
-		eventHandlers: map[open.MatchEventType]eventHandler{},
+		brokerList:    brokerList,
+		topics:        topics,
+		group:         group,
+		EventHandlers: pubsub.EventHandlers{},
 	}
 
 	return s, nil
@@ -84,23 +85,6 @@ func (s KafkaSubscriber) Name() string {
 	return "kafka"
 }
 
-func (s *KafkaSubscriber) Receive(ev *open.MatchEvent) error {
-	handler, ok := s.eventHandlers[ev.MatchEventType]
-	if !ok {
-		logger.Debugf("%s handler not registered", ev.MatchEventType.String())
-		return nil
-	}
-
-	return handler(ev)
-}
-
 func(s *KafkaSubscriber) Start() {
 	kafka_wrapper.RegisterConsumerFromBeginning(s, s.brokerList, s.topics, s.group)
-}
-
-func(s *KafkaSubscriber) RegisterEventHandler(evType open.MatchEventType, handler eventHandler) {
-	if _, ok :=  s.eventHandlers[evType];ok {
-		logger.DPanicf("%s handler has been registered previously", evType.String())
-	}
-	s.eventHandlers[evType] = handler
 }

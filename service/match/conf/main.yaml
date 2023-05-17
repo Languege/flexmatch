@@ -17,17 +17,28 @@ rpc:
   endpoints:
     matchgame: open.cellmesh.battle
 
-# kafka配置
-kafka:
-  bootstrapServers:
-    - 10.10.10.16:9092
-  prefix: local_
+publishers:
+  # kafka配置
+#  kafka:
+#    bootstrapServers:
+#      - 10.10.10.16:9092
+#    prefix: local_
+
+  redis:
+    connectMode: direct
+    host: 10.10.10.16
+    port: 6389
+    maxIdle: 15
+    idleTimeout: 1h
+    maxActive: 15
+
 
 log:
   default:
     paths:
       - lumberjack://./logs/runtime.log
       - stdout
+    development: true
   rpc:
     paths:
       - lumberjack://./logs/rpc.log

@@ -19,7 +19,9 @@ import (
 	"github.com/Languege/flexmatch/common/grpc_middleware"
 	logger_pubsub "github.com/Languege/flexmatch/service/match/pubsub/logging"
 	kafka_pubsub "github.com/Languege/flexmatch/service/match/pubsub/kafka"
+	redis_pubsub "github.com/Languege/flexmatch/service/match/pubsub/redis"
 	"github.com/Languege/flexmatch/service/match/pubsub"
+	redis_wrapper "github.com/Languege/flexmatch/common/wrappers/redis"
 )
 
 var(
@@ -33,8 +35,24 @@ func init() {
 
 	//匹配事件发布器设置
 	loggerPublisher := logger_pubsub.NewLoggerPublisher()
-	kafkaPublisher := kafka_pubsub.NewKafkaPublisher(viper.GetStringSlice("kafka.bootstrapServers"))
-	multiPublisher := pubsub.NewMultiPublisher(loggerPublisher, kafkaPublisher)
+	multiPublisher := pubsub.NewMultiPublisher(loggerPublisher)
+
+	if viper.IsSet("publishers.kafka") {
+		kafkaPublisher := kafka_pubsub.NewKafkaPublisher(viper.GetStringSlice("publishers.kafka.bootstrapServers"))
+		multiPublisher.Add(kafkaPublisher)
+	}
+
+	if viper.IsSet("publishers.redis") {
+		conf := redis_wrapper.Configure{}
+		err := viper.UnmarshalKey("publishers.redis", &conf)
+		if err != nil {
+			logger.Panicf("redis.publisher unmarshal err %s", err)
+		}
+		redisStreamPublisher := redis_pubsub.NewRedisStreamPublisher(conf)
+		multiPublisher.Add(redisStreamPublisher)
+	}
+
+
 	entities.SetPublisher(multiPublisher)
 
 	//TODO: 临时使用mock
