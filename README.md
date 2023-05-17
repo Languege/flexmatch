@@ -1,11 +1,11 @@
 [亚马逊FlexMatch](https://docs.aws.amazon.com/zh_cn/gamelift/latest/flexmatchguide/match-intro.html) 服务的go语言实现
 
 ### TODO
-- [ ] 迁移服务注册/发现、rpc日志
+- [x] 迁移服务注册/发现、rpc日志
 
-- [ ] kafka 事件的接口封装 客户端
+- [x] kafka 事件的接口封装 客户端
 
-- [ ] redis 的匹配事件订阅和消费
+- [x] redis 的匹配事件订阅和消费
 
 - [ ] metrics: 预计匹配时长
 
