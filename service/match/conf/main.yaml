@@ -54,11 +54,14 @@ log:
 pyroscope:
   provider: "file"      # file, etcd
   key: "pyroscope.file"
+
+#  provider: "etcd"      # file, etcd
+#  key: "pyroscope"
   localTags:
     version: "v1"
+  applicationName: "localhost"
 
   file:
-    applicationName: "localhost"
     serverAddress: "http://remote-server:4040"
     profileTypes:
       - mutex_count

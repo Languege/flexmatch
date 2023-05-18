@@ -17,13 +17,14 @@ import (
 )
 
 const (
-	confProviderViper = "viper"
+	confProviderFile = "file"
 	confProviderEtcd = "etcd"
 )
 
 type Config struct {
 	Provider  string //配置提供来源 viper-本地配置文件(默认)、etcd-远端etcd服务
 	Key       string //viper配置Key 或者 etcd监听Key
+	ApplicationName string  //应用名，透传给pyroscope.Config
 	LocalTags map[string]string //本地标签，用于进行标签匹配，仅完全匹配的实例才进行指标上报
 }
 
@@ -149,13 +150,13 @@ func(w *PyroscopeWrapper) watchConfig() {
 }
 
 //matchTags 标签匹配
-func(s *PyroscopeWrapper) matchTags(tags map[string]string) bool {
+func(w *PyroscopeWrapper) matchTags(tags map[string]string) bool {
 	if len(tags) == 0 {
 		return true
 	}
 
 	for k, v := range tags {
-		lv, ok := s.LocalTags[k]
+		lv, ok := w.LocalTags[k]
 		if !ok {
 			return false
 		}
@@ -168,16 +169,14 @@ func(s *PyroscopeWrapper) matchTags(tags map[string]string) bool {
 	return true
 }
 
-func(s *PyroscopeWrapper) reset() {
-	if v := s.profile.Load(); v != nil {
+func(w *PyroscopeWrapper) reset() {
+	if v := w.profile.Load(); v != nil {
 		if err := v.(*pyroscope.Profiler).Stop();err != nil {
 			logger.Errorf("PyroscopeWrapper reset  err %s", err)
 		}
 		//关闭互斥、阻塞采样
 		runtime.SetMutexProfileFraction(0)
 		runtime.SetBlockProfileRate(0)
-
-		s.profile.Store(nil)
 	}
 }
 
@@ -196,6 +195,7 @@ func(w *PyroscopeWrapper) start(cfg pyroscope.Config) {
 
 	cfg.Logger = logger.GlobalInstance()
 	cfg.Tags = w.LocalTags
+	cfg.ApplicationName = w.ApplicationName
 	p, err := pyroscope.Start(cfg)
 	if err != nil {
 		logger.Error(err)
