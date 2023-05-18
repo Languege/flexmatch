@@ -46,6 +46,22 @@ log:
   accesslog:
     paths:
       - dateformat://./logs/accesslog?usecache=true&cachesize=10
+  pyroscope:
+    paths:
+      - stdout
 
-stat:
-  port: 7007
+
+pyroscope:
+  provider: "file"      # file, etcd
+  key: "pyroscope.file"
+  localTags:
+    version: "v1"
+
+  file:
+    applicationName: "localhost"
+    serverAddress: "http://remote-server:4040"
+    profileTypes:
+      - mutex_count
+      - mutex_duration
+      - block_count
+      - block_duration

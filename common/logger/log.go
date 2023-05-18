@@ -211,3 +211,8 @@ func FatalfIf(cond bool, fmt string, args ...interface{}) {
 func FatalIfError(err error) {
 	FatalfIf(err != nil, "fatal error: %v", err)
 }
+
+
+func GlobalInstance() Logger {
+	return logger
+}

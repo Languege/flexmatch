@@ -12,6 +12,7 @@ func init() {
 
 	InitEtcd()
 
+	InitPyroscope()
 
 	WaitExit(time.Second)
 }
