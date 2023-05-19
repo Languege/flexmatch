@@ -9,13 +9,13 @@
 
 - [x] pyroscope
 
-- [ ] metrics
+- [x] metrics
 
 - [x] pprof
 
 - [ ] admin
 
-- [ ] 对局服务样例
+- [x] 对局服务样例
 
 
 

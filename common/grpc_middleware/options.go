@@ -16,6 +16,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
+	"github.com/spf13/viper"
+	"github.com/Languege/flexmatch/common/grpc_middleware/timeout"
 )
 
 
@@ -42,6 +44,10 @@ func ClientOptions()(opts []grpc.DialOption) {
 	unaryClientInterceptorList = append(unaryClientInterceptorList,
 		grpc_zap.UnaryClientInterceptor(rpcLogger, zapOpts...),
 	)
+
+	if timeoutDuration := viper.GetDuration("rpc.timeout"); timeoutDuration > 0  {
+		unaryClientInterceptorList = append(unaryClientInterceptorList, timeout.TimeoutInterceptor(timeoutDuration))
+	}
 
 	opts = append(opts,grpc.WithChainUnaryInterceptor(unaryClientInterceptorList...))
 
