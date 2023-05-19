@@ -106,8 +106,8 @@ func TestStartMatchmaking(t *testing.T) {
 
 func TestMatchEventConsume(t *testing.T) {
 	N := 500
-	var successCount, timeoutCount int64
-	wg := &sync.WaitGroup{}
+	var successCount, timeoutCount, matchCount int64
+	done := make(chan struct{}, 1)
 	sub, err := kafka_pubsub.NewKafkaSubscriber(viper.GetStringSlice("publishers.kafka.bootstrapServers"),
 		[]string{defaultConf().MatchEventQueueTopic}, "matcheventpushtoclient")
 	if err != nil {
@@ -125,7 +125,10 @@ func TestMatchEventConsume(t *testing.T) {
 	})
 
 	sub.RegisterEventHandler(open.MatchEventType_PotentialMatchCreated, func(ev *open.MatchEvent) error {
-		logger.Info("广播对局已找到，等待玩家接受（无需接受自动跳过）")
+		logger.Info("广播对局已找到")
+		if ev.AcceptanceRequired {
+			logger.Info("等待玩家接收对局")
+		}
 		return nil
 	})
 
@@ -140,20 +143,32 @@ func TestMatchEventConsume(t *testing.T) {
 	})
 
 	sub.RegisterEventHandler(open.MatchEventType_MatchmakingSucceeded, func(ev *open.MatchEvent) error {
-		defer wg.Done()
+		defer func() {
+			newCount :=  atomic.AddInt64(&matchCount, 1)
+			if newCount >= int64(N) {
+				close(done)
+			}
+		}()
 		atomic.AddInt64(&successCount, 1)
 		logger.Info("广播匹配成功通知，包含对局连接信息，客户端进行服务绑定，进入对局服务器房间")
 		return nil
 	})
 
 	sub.RegisterEventHandler(open.MatchEventType_MatchmakingTimedOut, func(ev *open.MatchEvent) error {
-		defer wg.Done()
-		atomic.AddInt64(&timeoutCount, 1)
 		logger.Info("通知票据内玩家匹配超时")
 		return nil
 	})
 
 	sub.RegisterEventHandler(open.MatchEventType_MatchmakingFailed, func(ev *open.MatchEvent) error {
+		if ev.MatchId != "" {
+			defer func() {
+				newCount :=  atomic.AddInt64(&matchCount, 1)
+				if newCount >= int64(N) {
+					close(done)
+				}
+			}()
+		}
+
 		logger.Info("通知票据内玩家匹配失败")
 		return nil
 	})
@@ -163,7 +178,6 @@ func TestMatchEventConsume(t *testing.T) {
 
 	st := time.Now()
 	for i := 0; i < N;i++ {
-		wg.Add(1)
 		for i := 0; i < 10;i++ {
 			ticket := newTicket()
 			req := &open.StartMatchmakingRequest{
@@ -178,12 +192,14 @@ func TestMatchEventConsume(t *testing.T) {
 			}
 		}
 	}
+	<-done
 
-	wg.Wait()
 
 	t.Logf("success %d timeout %d", successCount, timeoutCount)
 	cost := time.Now().Sub(st).Nanoseconds() / int64(N)
 	t.Log(cost) //N=50时，28938031 ns;N=200时, 4769162 ns;N=500时，3759681 ns
+
+	time.Sleep(time.Second)
 }
 
 func TestMatchEventConsumeUseRedisStream(t *testing.T) {

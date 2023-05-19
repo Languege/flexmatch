@@ -20,8 +20,14 @@ import (
 	logger_pubsub "github.com/Languege/flexmatch/service/match/pubsub/logging"
 	kafka_pubsub "github.com/Languege/flexmatch/service/match/pubsub/kafka"
 	redis_pubsub "github.com/Languege/flexmatch/service/match/pubsub/redis"
+	prometheus_pubsub "github.com/Languege/flexmatch/service/match/pubsub/prometheus"
 	"github.com/Languege/flexmatch/service/match/pubsub"
 	redis_wrapper "github.com/Languege/flexmatch/common/wrappers/redis"
+
+	"net/http"
+	_ "net/http/pprof"
+	//pyroscope pull mode
+	_ "github.com/pyroscope-io/godeltaprof/http/pprof"
 )
 
 var(
@@ -35,7 +41,10 @@ func init() {
 
 	//匹配事件发布器设置
 	loggerPublisher := logger_pubsub.NewLoggerPublisher()
-	multiPublisher := pubsub.NewMultiPublisher(loggerPublisher)
+	metricsPublisher := prometheus_pubsub.NewMetricsPublisher()
+
+	multiPublisher := pubsub.NewMultiPublisher(loggerPublisher, metricsPublisher)
+
 
 	if viper.IsSet("publishers.kafka") {
 		kafkaPublisher := kafka_pubsub.NewKafkaPublisher(viper.GetStringSlice("publishers.kafka.bootstrapServers"))
@@ -61,6 +70,10 @@ func init() {
 
 
 func main() {
+	go func() {
+		log.Println(http.ListenAndServe(fmt.Sprintf(":%d", viper.GetInt("http.port")), nil))
+	}()
+
 	logger.Debugw("", "BuildVersion", BuildVersion, "BuildDate", BuildDate)
 
 	address := fmt.Sprintf("%s:%d", viper.GetString("rpc.host"), viper.GetInt("rpc.port"))

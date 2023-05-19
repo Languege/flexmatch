@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 	"github.com/Languege/flexmatch/service/match/pubsub"
+	"github.com/Languege/flexmatch/common/logger"
 )
 
 type Matchmaking struct {
@@ -98,6 +99,14 @@ func (e *Matchmaking) TicketQueued(ticket *open.MatchmakingTicket) (err error) {
 	ticket.Status = open.MatchmakingTicketStatus_QUEUED.String()
 	//设置预计时间
 	ticket.EstimatedWaitTime = e.EstimatedWaitTime()
+
+	//queued事件上报
+	queuedEvent := &open.MatchEvent{
+		MatchEventType: open.MatchEventType_MatchmakingQueued,
+		Tickets:        []*open.MatchmakingTicket{ticket},
+	}
+
+	publisher.Send(e.Conf.MatchEventQueueTopic, queuedEvent)
 	return
 }
 
@@ -200,6 +209,11 @@ func (e *Matchmaking) divideBatch(tickets []*open.MatchmakingTicket) (batches []
 //  2. 票据超时检测
 //  3. 关闭检测
 func (e *Matchmaking) TicketWatch() {
+	defer func() {
+		if r := recover();r != nil {
+			logger.DPanicf("TicketWatch recover %s", r)
+		}
+	}()
 	for {
 		select {
 		case tickets, ok := <-e.batchTicketChan:

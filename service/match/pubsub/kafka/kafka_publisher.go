@@ -32,6 +32,9 @@ func(p KafkaPublisher) Name() string {
 
 
 func(p *KafkaPublisher)  Send(topic string, ev *open.MatchEvent) error {
+	if ev.MatchEventType == open.MatchEventType_MatchmakingQueued {
+		return nil
+	}
 	key := ev.MatchId
 	if key == "" {
 		key = uuid.NewString()

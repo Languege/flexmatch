@@ -8,6 +8,19 @@ import (
 	"github.com/Languege/flexmatch/service/match/proto/open"
 	"github.com/google/uuid"
 	"time"
+	"github.com/juju/errors"
+	"github.com/Languege/flexmatch/common/logger"
+)
+
+const (
+	AcceptanceCompletedReasonTimeOut =  "TimeOut"
+	AcceptanceCompletedReasonAcceptance =  "Acceptance"
+	AcceptanceCompletedReasonRejection = "Rejection"
+
+	StatusReasonRejectMatch = "RejectMatch"
+	StatusReasonCreateGameSessionFailed = "CreateGameSessionFailed"
+	StatusReasonSearchingFailedBackfill = "SearchingFailedBackfill"
+	StatusReasonMatchRejectBackfill = "MatchRejectBackfill"
 )
 
 type Match struct {
@@ -81,7 +94,7 @@ func (m *Match) StartAccept(acceptanceTimeoutSeconds int64, placingMatchChan cha
 					MatchEventType:            open.MatchEventType_AcceptMatchCompleted,
 					Tickets:                   m.AcceptTickets(),
 					MatchId:                   m.MatchId,
-					AcceptanceCompletedReason: "TimeOut",
+					AcceptanceCompletedReason: AcceptanceCompletedReasonTimeOut,
 				}
 
 				publisher.Send(m.matchmaking.Conf.MatchEventQueueTopic, completedEvent)
@@ -124,12 +137,12 @@ func (m *Match) StartAccept(acceptanceTimeoutSeconds int64, placingMatchChan cha
 						ticket.Status = open.MatchmakingTicketStatus_PLACING.String()
 					}
 
-					//玩家均已结束，上报匹配完成事件（因为接受）
+					//玩家均已接收，上报匹配完成事件（因为接受）
 					completedEvent := &open.MatchEvent{
 						MatchEventType:            open.MatchEventType_AcceptMatchCompleted,
 						Tickets:                   allTickets,
 						MatchId:                   m.MatchId,
-						AcceptanceCompletedReason: "Acceptance",
+						AcceptanceCompletedReason: AcceptanceCompletedReasonAcceptance,
 					}
 
 					publisher.Send(m.matchmaking.Conf.MatchEventQueueTopic,completedEvent)
@@ -161,7 +174,7 @@ func (m *Match) StartAccept(acceptanceTimeoutSeconds int64, placingMatchChan cha
 
 				//已接受或拒绝票据保存
 				rejectTicket.Status = open.MatchmakingTicketStatus_CANCELLED.String()
-				rejectTicket.StatusReason = "RejectMatch"
+				rejectTicket.StatusReason = StatusReasonRejectMatch
 				m.acceptTickets[rejectTicket.TicketId] = rejectTicket
 				//AcceptMatch事件上报
 				acceptMatchEvent := &open.MatchEvent{
@@ -177,7 +190,7 @@ func (m *Match) StartAccept(acceptanceTimeoutSeconds int64, placingMatchChan cha
 					MatchEventType:            open.MatchEventType_AcceptMatchCompleted,
 					Tickets:                   allTickets,
 					MatchId:                   m.MatchId,
-					AcceptanceCompletedReason: "Rejection",
+					AcceptanceCompletedReason: AcceptanceCompletedReasonRejection,
 				}
 
 				publisher.Send(m.matchmaking.Conf.MatchEventQueueTopic,acceptMatchCompleted)
@@ -185,10 +198,32 @@ func (m *Match) StartAccept(acceptanceTimeoutSeconds int64, placingMatchChan cha
 
 				if m.matchmaking.Conf.BackfillMode == open.BackfillMode_AUTOMATIC.String() {
 					//匹配自动回填 （拒绝的票据除外）
+					failedTickets := []*open.MatchmakingTicket{}
+					var failedErr  error
 					for _, ticket := range allTickets {
 						if ticket.TicketId != rejectTicket.TicketId {
-							m.matchmaking.TicketQueued(ticket)
+							ticket.StatusReason = StatusReasonMatchRejectBackfill
+							if err := m.matchmaking.TicketQueued(ticket);err != nil {
+								logger.Errorf("TicketQueued err %s", errors.ErrorStack(err))
+								failedTickets = append(failedTickets, ticket)
+								if failedErr == nil {
+									failedErr = err
+								}
+							}
 						}
+					}
+
+					if len(failedTickets) > 0 {
+						//匹配失败事件上报
+						failedEvent := &open.MatchEvent{
+							MatchEventType: open.MatchEventType_MatchmakingFailed,
+							Tickets:        failedTickets,
+							MatchId:   		m.MatchId,
+							Reason:         "TicketQueuedFailed",
+							Message:        failedErr.Error(),
+						}
+
+						publisher.Send(m.matchmaking.Conf.MatchEventQueueTopic,failedEvent)
 					}
 				}
 
@@ -233,7 +268,7 @@ func (m *Match) StartGameSession() {
 		//票据状态变更
 		for _, ticket := range allTickets {
 			ticket.Status = open.MatchmakingTicketStatus_FAILED.String()
-			ticket.StatusReason = "CreateGameSessionFailed"
+			ticket.StatusReason = StatusReasonCreateGameSessionFailed
 			ticket.StatusMessage = err.Error()
 		}
 		//匹配失败事件上报
@@ -241,7 +276,7 @@ func (m *Match) StartGameSession() {
 			MatchEventType: open.MatchEventType_MatchmakingFailed,
 			Tickets:        allTickets,
 			MatchId:        m.MatchId,
-			Reason:         "CreateGameSessionFailed",
+			Reason:         StatusReasonCreateGameSessionFailed,
 			Message:        err.Error(),
 		}
 

@@ -42,7 +42,7 @@ func (s *KafkaSubscriber) Setup(ses sarama.ConsumerGroupSession) error {
 }
 
 func (s *KafkaSubscriber) Cleanup(ses sarama.ConsumerGroupSession) error {
-	logger.Info("KafkaSubscriber cleanup, %s stopping...", ses.MemberID())
+	logger.Infof("KafkaSubscriber cleanup, %s stopping...", ses.MemberID())
 
 	return nil
 }

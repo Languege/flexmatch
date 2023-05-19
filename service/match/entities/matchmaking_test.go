@@ -244,7 +244,7 @@ func TestMatchmaking_BackfillMode(t *testing.T) {
 				}
 			case open.MatchEventType_AcceptMatch:
 				for _, ticket := range ev.Tickets {
-					if ticket.StatusReason == "RejectMatch" && ticket.Status == open.MatchmakingTicketStatus_CANCELLED.String() {
+					if ticket.StatusReason == StatusReasonRejectMatch && ticket.Status == open.MatchmakingTicketStatus_CANCELLED.String() {
 						go func(ticket *open.MatchmakingTicket) {
 							time.Sleep(time.Second)
 							//重新加入

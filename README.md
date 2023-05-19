@@ -7,9 +7,11 @@
 
 - [x] redis 的匹配事件订阅和消费
 
-- [ ] metrics: 预计匹配时长
+- [x] pyroscope
 
-- [ ] pprof
+- [ ] metrics
+
+- [x] pprof
 
 - [ ] admin
 
@@ -68,6 +70,24 @@ bash start.sh
 |`2000`|`1338885`|
 
 测试用例`TestMatchmaking_TicketInput`位于service/match/entities/matchmaking_test.go中, 参数N设置对局数
+
+
+### metrics
+|指标名|类型|说明|
+|---|---|---|
+|flex_match_ticket_queued|Counter|票据入队列计数|
+|flex_match_ticket_backfill|Counter|票据回填计数|
+|flex_match_ticket_canceled|Counter|票据取消计数|
+|flex_match_ticket_timeout|Counter|票据超时计数|
+|flex_match_ticket_in_queued|Gather|处于队列中的票据数|
+|flex_match_ticket_in_searching|Gather|处于搜索中的票据数|
+|flex_match_ticket_in_requires_acceptance|Gather|处于请求接收状态中的票据数|
+|flex_match_ticket_in_placing|Gather|处于安排游戏状态的票据数|
+|flex_match_match_potential|Counter|潜在对局计数|
+|flex_match_match_completed|Counter|接收完成对局计数 (超时、部分接收、任意拒绝), 对局配置AcceptanceRequired为true时生效|
+|flex_match_match_succeed|Counter|成功对局计数|
+|flex_match_match_accept_timeout|Counter|接收超时对局计数|
+|flex_match_match_rejected|Counter|拒绝对局计数|
 
 ### 其他
 本服务为亚马逊匹配服务的实现，变动如下

@@ -25,6 +25,9 @@ func(p RedisStreamPublisher) Name() string {
 }
 
 func(p RedisStreamPublisher) Send(topic string, ev *open.MatchEvent) error {
+	if ev.MatchEventType == open.MatchEventType_MatchmakingQueued {
+		return nil
+	}
 	data, err := json.Marshal(ev)
 	if err != nil {
 		return err

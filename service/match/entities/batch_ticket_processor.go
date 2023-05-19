@@ -9,6 +9,8 @@ import (
 	"sort"
 	"time"
 	"sync/atomic"
+	"github.com/Languege/flexmatch/common/logger"
+	"github.com/juju/errors"
 )
 
 const (
@@ -405,8 +407,28 @@ func (proc *BatchTicketProcessor) loopBuildMatch(tickets []*open.MatchmakingTick
 				//超时检测
 				tickets = proc.Matchmaking.checkTicketsTimeout(tickets)
 				//无法形成对局，票据冲入队列
+				failedTickets := []*open.MatchmakingTicket{}
+				var failedErr  error
 				for _, ticket := range tickets {
-					proc.ticketMaybeQueue(ticket)
+					if err := proc.ticketMaybeQueue(ticket); err != nil {
+						logger.Errorf("ticketMaybeQueue err %s", errors.ErrorStack(err))
+						failedTickets = append(failedTickets, ticket)
+						if failedErr == nil {
+							failedErr = err
+						}
+					}
+				}
+
+				if len(failedTickets) > 0 {
+					//匹配失败事件上报
+					failedEvent := &open.MatchEvent{
+						MatchEventType: open.MatchEventType_MatchmakingFailed,
+						Tickets:        failedTickets,
+						Reason:         "TicketQueuedFailed",
+						Message:        failedErr.Error(),
+					}
+
+					publisher.Send(proc.Matchmaking.Conf.MatchEventQueueTopic,failedEvent)
 				}
 				return
 			}
@@ -434,13 +456,15 @@ func (proc *BatchTicketProcessor) matchPotential(match *Match) {
 }
 
 // ticketMaybeQueue 票据尝试重入
-func (proc *BatchTicketProcessor) ticketMaybeQueue(ticket *open.MatchmakingTicket) {
+func (proc *BatchTicketProcessor) ticketMaybeQueue(ticket *open.MatchmakingTicket)  error {
 	//状态判断 (用户可能取消匹配之类)
 	if ticket.Status != open.MatchmakingTicketStatus_SEARCHING.String() {
-		return
+		return nil
 	}
 
-	proc.Matchmaking.TicketQueued(ticket)
+	ticket.StatusReason = StatusReasonSearchingFailedBackfill
+
+	return proc.Matchmaking.TicketQueued(ticket)
 }
 
 func (proc *BatchTicketProcessor) addMatchCost(match *Match) {
@@ -486,6 +510,11 @@ func (proc *BatchTicketProcessor) run() {
 
 			//是否需要等待用户接受
 			if proc.Matchmaking.Conf.AcceptanceRequired == false {
+				//更新票据状态为安排对局中
+				for _, ticket := range match.AllTickets() {
+					ticket.Status = open.MatchmakingTicketStatus_PLACING.String()
+				}
+
 				proc.placingMatchChan <- match
 				break
 			}

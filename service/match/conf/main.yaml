@@ -1,4 +1,4 @@
-port: 8007
+http.port: 8007
 project: open
 service: open.match
 # etcd配置
@@ -39,10 +39,12 @@ log:
       - lumberjack://./logs/runtime.log
       - stdout
     development: true
+    level: warn
   rpc:
     paths:
       - lumberjack://./logs/rpc.log
       - stdout
+    level: warn
   accesslog:
     paths:
       - dateformat://./logs/accesslog?usecache=true&cachesize=10
@@ -51,20 +53,20 @@ log:
       - stdout
 
 
-pyroscope:
-  provider: "file"      # file, etcd
-  key: "pyroscope.file"
-
-#  provider: "etcd"      # file, etcd
-#  key: "pyroscope"
-  localTags:
-    version: "v1"
-  applicationName: "localhost"
-
-  file:
-    serverAddress: "http://remote-server:4040"
-    profileTypes:
-      - mutex_count
-      - mutex_duration
-      - block_count
-      - block_duration
+#pyroscope:
+#  provider: "file"      # file, etcd
+#  key: "pyroscope.file"
+#
+##  provider: "etcd"      # file, etcd
+##  key: "pyroscope"
+#  localTags:
+#    version: "v1"
+#  applicationName: "localhost"
+#
+#  file:
+#    serverAddress: "http://localhost:4040"
+#    profileTypes:
+#      - mutex_count
+#      - mutex_duration
+#      - block_count
+#      - block_duration

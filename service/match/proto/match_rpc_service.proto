@@ -338,23 +338,25 @@ message MatchmakingRuleSet {
 
 //匹配事件类型
 enum MatchEventType {
+    //票据入缓存队列，还未开始Searching, (当前仅内部metrics使用，游戏业务无需处理该事件)
+    MatchmakingQueued = 0;
     //MatchmakingSearching 票据已被输入到匹配中。这包括新的请求和属于潜在匹配失败的请求。
-    MatchmakingSearching = 0;
+    MatchmakingSearching = 1;
     //PotentialMatchCreated 一个潜在的匹配已经被创建。对于所有新的潜在匹配，不管是否需要接受，都会发出这个消息。
-    PotentialMatchCreated = 1;
+    PotentialMatchCreated = 2;
     //AcceptMatch 玩家已经接受了一场潜在的比赛。这个事件包含了比赛中每个玩家的当前接受状态。缺少的数据意味着AcceptMatch还没有为该玩家调用。
-    AcceptMatch = 2;
+    AcceptMatch = 3;
     //AcceptMatchCompleted 由于玩家接受、玩家拒绝或接受超时，比赛接受完成。
-    AcceptMatchCompleted = 3;
+    AcceptMatchCompleted = 4;
     //MatchmakingSucceeded 匹配已经成功完成，并且已经创建了一个游戏会话。
-    MatchmakingSucceeded = 4;
+    MatchmakingSucceeded = 5;
     //MatchmakingTimedOut 匹配票因超时而失败。
-    MatchmakingTimedOut = 5;
+    MatchmakingTimedOut = 6;
     //MatchmakingCancelled  匹配票已被取消。
-    MatchmakingCancelled = 6;
+    MatchmakingCancelled = 7;
     //MatchmakingFailed
     //匹配票遇到了一个错误。这可能是由于游戏会话队列无法访问或内部错误造成的。
-    MatchmakingFailed = 7;
+    MatchmakingFailed = 8;
 }
 //匹配事件
 message MatchEvent {
