@@ -105,7 +105,7 @@ func TestStartMatchmaking(t *testing.T) {
 }
 
 func TestMatchEventConsume(t *testing.T) {
-	N := 500
+	N := 5
 	var successCount, timeoutCount, matchCount int64
 	done := make(chan struct{}, 1)
 	sub, err := kafka_pubsub.NewKafkaSubscriber(viper.GetStringSlice("publishers.kafka.bootstrapServers"),

@@ -5,3 +5,7 @@ service/match/match
 service/match/*/*.log
 *.log
 examples/*
+
+
+service/battle/battle
+service/battle/*/*.log

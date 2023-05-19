@@ -10,12 +10,9 @@ runMode: dev
 rpc:
   port: 10007
   service: open.match.rpc
-  logrus:
-    level: "info"   #日志等级
-    debug: true #是否输出到控制台
   timeout: 5s
   endpoints:
-    matchgame: open.cellmesh.battle
+    matchgame: open.battle.rpc
 
 publishers:
   # kafka配置
@@ -39,12 +36,12 @@ log:
       - lumberjack://./logs/runtime.log
       - stdout
     development: true
-    level: warn
+    level: info
   rpc:
     paths:
       - lumberjack://./logs/rpc.log
       - stdout
-    level: warn
+    level: info
   accesslog:
     paths:
       - dateformat://./logs/accesslog?usecache=true&cachesize=10

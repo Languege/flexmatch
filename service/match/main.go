@@ -28,6 +28,7 @@ import (
 	_ "net/http/pprof"
 	//pyroscope pull mode
 	_ "github.com/pyroscope-io/godeltaprof/http/pprof"
+	match_game_api "github.com/Languege/flexmatch/service/match/api/game"
 )
 
 var(
@@ -64,8 +65,9 @@ func init() {
 
 	entities.SetPublisher(multiPublisher)
 
-	//TODO: 临时使用mock
-	entities.SetGameClient(entities.NewMockGameClient())
+	//临时使用mock
+	//entities.SetGameClient(entities.NewMockGameClient())
+	entities.SetGameClient(match_game_api.FlexMatchGameClient)
 }
 
 

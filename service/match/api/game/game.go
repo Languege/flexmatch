@@ -27,7 +27,11 @@ func init() {
 }
 
 func newMatchGameClient() (open.FlexMatchGameClient,error) {
-	target := resolver_etcd.BuildTarget(viper.GetStringSlice("etcd.addrs"), common_constants.ServiceEndpoint_Battle)
+	battleEndpoint := common_constants.ServiceEndpoint_Battle
+	if v := viper.GetString("rpc.endpoints.matchgame"); v != "" {
+		battleEndpoint =  v
+	}
+	target := resolver_etcd.BuildTarget(viper.GetStringSlice("etcd.addrs"), battleEndpoint)
 	conn, err := grpc.DialContext(context.TODO(), target, grpc_middleware.ClientOptions()...)
 	if err != nil {
 		return nil, err

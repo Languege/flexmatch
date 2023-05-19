@@ -1,0 +1,30 @@
+http.port: 8008
+
+project: open
+service: open.battle
+# etcd配置
+etcd:
+  addrs: ["10.10.10.16:3379"]
+
+runMode: dev
+
+rpc:
+  port: 10008
+  service: open.battle.rpc
+
+log:
+  default:
+    paths:
+      - lumberjack://./logs/runtime.log
+      - stdout
+    development: true
+  rpc:
+    paths:
+      - lumberjack://./logs/rpc.log
+      - stdout
+  accesslog:
+    paths:
+      - dateformat://./logs/accesslog?usecache=true&cachesize=10
+  pyroscope:
+    paths:
+      - stdout
